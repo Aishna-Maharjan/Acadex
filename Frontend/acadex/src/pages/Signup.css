@@ -1,0 +1,140 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.signup-page {
+  min-height: 100vh;
+  background: #F0EDE8;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px 24px;
+  font-family: 'DM Sans', sans-serif;
+  color: #1A1A2E;
+}
+
+.signup-card {
+  width: 100%;
+  max-width: 480px;
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 44px 40px;
+  border: 1px solid #E8E4DC;
+  box-shadow: 0 8px 30px rgba(26, 26, 46, 0.08);
+}
+
+.signup-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.signup-header h1 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 42px;
+  font-weight: 400;
+  color: #1A1A2E;
+  margin-bottom: 8px;
+}
+
+.signup-header p {
+  font-size: 15px;
+  color: #8A8A9A;
+}
+
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #5A5A6A;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #D8D4CC;
+  border-radius: 8px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  background: #F8F6F2;
+  color: #1A1A2E;
+  outline: none;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.form-group input:focus {
+  border-color: #1A1A2E;
+  background: #FFFFFF;
+}
+
+.form-group input::placeholder {
+  color: #B0ACA4;
+}
+
+.signup-error {
+  color: #CC3333;
+  background: #FFE5E5;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.signup-btn {
+  width: 100%;
+  padding: 14px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 8px;
+  background: #1A1A2E;
+  color: #E8C97A;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.signup-btn:hover {
+  background: #2D2D4A;
+  transform: translateY(-1px);
+}
+
+.login-text {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 14px;
+  color: #8A8A9A;
+}
+
+.login-text span {
+  color: #1A1A2E;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.login-text span:hover {
+  color: #E8A020;
+}
+
+@media (max-width: 600px) {
+  .signup-page {
+    padding: 24px 16px;
+  }
+
+  .signup-card {
+    padding: 32px 24px;
+  }
+
+  .signup-header h1 {
+    font-size: 36px;
+  }
+}

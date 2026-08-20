@@ -1,0 +1,171 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  height: 72px;
+  padding: 0 64px;
+
+  background: #1A1A2E;
+  border-bottom: 1px solid #2D2D4A;
+}
+
+/* LOGO */
+
+.logo-area {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  text-decoration: none;
+  font-family: "DM Serif Display", serif;
+  font-size: 25px;
+  font-weight: 400;
+  color: #E8C97A;
+}
+
+/* NAVIGATION */
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 34px;
+  margin-left: auto;
+  margin-right: 40px;
+}
+
+.nav-links a {
+  position: relative;
+
+  text-decoration: none;
+  color: #A0A0C0;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  padding: 26px 0;
+
+  transition: color 0.2s ease;
+}
+
+.nav-links a:hover {
+  color: #E8C97A;
+}
+
+/* ACTIVE LINK */
+
+.nav-links a.active {
+  color: #E8C97A;
+}
+
+.nav-links a.active::after {
+  content: "";
+
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 18px;
+
+  height: 2px;
+
+  background: #E8C97A;
+}
+
+/* RIGHT SIDE */
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.profile-link {
+  text-decoration: none;
+
+  color: #A0A0C0;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  padding: 9px 14px;
+  border-radius: 7px;
+
+  transition: all 0.2s ease;
+}
+
+.profile-link:hover {
+  color: #E8C97A;
+  background: #232340;
+}
+
+/* LOGOUT */
+
+.logout-btn {
+  border: 1px solid #3A3A55;
+  border-radius: 7px;
+
+  padding: 9px 16px;
+
+  background: transparent;
+  color: #A0A0C0;
+
+  font-family: "DM Sans", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+.logout-btn:hover {
+  background: #2D2D4A;
+  color: #F5F2EC;
+  border-color: #55556F;
+}
+
+/* MOBILE */
+
+@media (max-width: 900px) {
+
+  .navbar {
+    padding: 0 24px;
+  }
+
+  .nav-links {
+    gap: 18px;
+    margin-right: 20px;
+  }
+
+  .nav-links a {
+    font-size: 13px;
+  }
+
+  .nav-actions {
+    gap: 6px;
+  }
+
+  .profile-link {
+    display: none;
+  }
+}
+
+@media (max-width: 650px) {
+
+  .navbar {
+    height: 64px;
+  }
+
+  .nav-links {
+    display: none;
+  }
+
+  .logo {
+    font-size: 23px;
+  }
+}

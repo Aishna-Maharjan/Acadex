@@ -48,8 +48,8 @@ function Signup() {
         setError(data.detail || "Signup failed.");
         return;
       }
-
       alert("Account created successfully!");
+      window.location.href = "/login";
       console.log(data);
     } catch (err) {
       setError("Could not connect to server.");

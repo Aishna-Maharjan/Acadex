@@ -156,3 +156,36 @@ def toggle_favorite(resource_id, subject_id):
     conn.close()
 
     return resource
+
+def search_resources(subject_id, keyword):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT id, subject_id, title, description,
+               resource_type, resource_url,
+               is_favorite, created_at
+        FROM resources
+        WHERE subject_id = %s
+        AND (
+            title ILIKE %s
+            OR description ILIKE %s
+            OR resource_type ILIKE %s
+        )
+        ORDER BY created_at DESC;
+        """,
+        (
+            subject_id,
+            f"%{keyword}%",
+            f"%{keyword}%",
+            f"%{keyword}%"
+        )
+    )
+
+    resources = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return resources

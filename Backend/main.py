@@ -13,8 +13,17 @@ from resources import (
     get_resources,
     update_resource,
     delete_resource,
-    toggle_favorite
+    toggle_favorite,
+    search_resources
 )
+from community import create_post, get_posts, delete_post
+from like import like_post, unlike_post, get_post_likes
+from notifications import (
+    create_notification,
+    get_notifications,
+    mark_notification_read
+)
+from comments import create_comment, get_comments, delete_comment
 
 load_dotenv()
 
@@ -58,13 +67,26 @@ class ResourceRequest(BaseModel):
     resource_type: str = ""
     resource_url: str = ""
 
-
 class ResourceUpdateRequest(BaseModel):
     subject_id: int
     title: str
     description: str = ""
     resource_type: str = ""
     resource_url: str = ""
+
+class CommunityPostRequest(BaseModel):
+    user_id: int
+    title: str
+    description: str = ""
+    resource_type: str = ""
+    resource_url: str = ""
+
+class LikeRequest(BaseModel):
+    user_id: int
+
+class CommentRequest(BaseModel):
+    user_id: int
+    comment: str
 
 @app.post("/signup")
 def signup(user: SignupRequest):
@@ -331,4 +353,273 @@ def favorite_resource(resource_id: int, subject_id: int):
             "title": resource[2],
             "is_favorite": resource[3]
         }
+    }
+
+@app.get("/resources/{subject_id}/search")
+def search_resource(subject_id: int, keyword: str):
+
+    resources = search_resources(subject_id, keyword)
+
+    return {
+        "resources": [
+            {
+                "id": resource[0],
+                "subject_id": resource[1],
+                "title": resource[2],
+                "description": resource[3],
+                "resource_type": resource[4],
+                "resource_url": resource[5],
+                "is_favorite": resource[6],
+                "created_at": resource[7]
+            }
+            for resource in resources
+        ]
+    }
+
+@app.post("/community")
+def add_post(post: CommunityPostRequest):
+
+    new_post = create_post(
+        post.user_id,
+        post.title,
+        post.description,
+        post.resource_type,
+        post.resource_url
+    )
+
+    return {
+        "message": "Post shared successfully!",
+        "post": {
+            "id": new_post[0],
+            "user_id": new_post[1],
+            "title": new_post[2],
+            "description": new_post[3],
+            "resource_type": new_post[4],
+            "resource_url": new_post[5],
+            "created_at": new_post[6]
+        }
+    }
+
+
+@app.get("/community")
+def fetch_posts():
+
+    posts = get_posts()
+
+    return {
+        "posts": [
+            {
+                "id": post[0],
+                "user_id": post[1],
+                "username": post[2],
+                "title": post[3],
+                "description": post[4],
+                "resource_type": post[5],
+                "resource_url": post[6],
+                "created_at": post[7]
+            }
+            for post in posts
+        ]
+    }
+
+
+@app.delete("/community/{post_id}")
+def remove_post(post_id: int, user_id: int):
+
+    deleted = delete_post(post_id, user_id)
+
+    if deleted is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Post not found"
+        )
+
+    return {
+        "message": "Post deleted successfully!"
+    }
+
+@app.post("/community/{post_id}/like")
+def add_like(post_id: int, like: LikeRequest):
+
+    result = like_post(
+        post_id,
+        like.user_id
+    )
+
+    if result is None:
+        return {
+            "message": "Post already liked!"
+        }
+
+    conn = psycopg2.connect(
+        host=os.getenv("DB_HOST"),
+        port=os.getenv("DB_PORT"),
+        dbname=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD")
+    )
+
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT user_id
+        FROM community_posts
+        WHERE id = %s;
+        """,
+        (post_id,)
+    )
+
+    post_owner = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    if post_owner is not None:
+
+        owner_id = post_owner[0]
+        if owner_id != like.user_id:
+
+            create_notification(
+                user_id=owner_id,
+                sender_id=like.user_id,
+                notification_type="like",
+                message="Someone liked your post.",
+                post_id=post_id
+            )
+
+    return {
+        "message": "Post liked successfully!"
+    }
+
+
+@app.delete("/community/{post_id}/like")
+def remove_like(post_id: int, user_id: int):
+
+    result = unlike_post(
+        post_id,
+        user_id
+    )
+
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Like not found"
+        )
+
+    return {
+        "message": "Post unliked successfully!"
+    }
+
+
+@app.get("/community/{post_id}/likes")
+def count_likes(post_id: int):
+
+    count = get_post_likes(post_id)
+
+    return {
+        "post_id": post_id,
+        "likes": count
+    }
+
+@app.get("/notifications/{user_id}")
+def fetch_notifications(user_id: int):
+
+    notifications = get_notifications(user_id)
+
+    return {
+        "notifications": [
+            {
+                "id": notification[0],
+                "user_id": notification[1],
+                "sender_id": notification[2],
+                "type": notification[3],
+                "message": notification[4],
+                "post_id": notification[5],
+                "is_read": notification[6],
+                "created_at": notification[7]
+            }
+            for notification in notifications
+        ]
+    }
+
+
+@app.put("/notifications/{notification_id}/read")
+def read_notification(
+    notification_id: int,
+    user_id: int
+):
+
+    notification = mark_notification_read(
+        notification_id,
+        user_id
+    )
+
+    if notification is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Notification not found"
+        )
+
+    return {
+        "message": "Notification marked as read!"
+    }
+
+@app.post("/community/{post_id}/comments")
+def add_comment(post_id: int, comment: CommentRequest):
+
+    new_comment = create_comment(
+        post_id,
+        comment.user_id,
+        comment.comment
+    )
+
+    return {
+        "message": "Comment added successfully!",
+        "comment": {
+            "id": new_comment[0],
+            "post_id": new_comment[1],
+            "user_id": new_comment[2],
+            "comment": new_comment[3],
+            "created_at": new_comment[4]
+        }
+    }
+
+
+@app.get("/community/{post_id}/comments")
+def fetch_comments(post_id: int):
+
+    comments = get_comments(post_id)
+
+    return {
+        "comments": [
+            {
+                "id": item[0],
+                "post_id": item[1],
+                "user_id": item[2],
+                "username": item[3],
+                "comment": item[4],
+                "created_at": item[5]
+            }
+            for item in comments
+        ]
+    }
+
+
+@app.delete("/community/comments/{comment_id}")
+def remove_comment(comment_id: int, user_id: int):
+
+    deleted = delete_comment(
+        comment_id,
+        user_id
+    )
+
+    if deleted is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Comment not found"
+        )
+
+    return {
+        "message": "Comment deleted successfully!"
     }

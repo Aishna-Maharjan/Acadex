@@ -1,20 +1,20 @@
 .personal-page {
   min-height: 100vh;
   background: #F0EDE8;
-  color: #1A1A2E;
+  color: #2D1B4E;
 }
 
 .personal-hero {
-  background: #1A1A2E;
+  background: #2D1B4E;
   padding: 60px 64px 68px;
-  border-bottom: 3px solid #E8C97A;
+  border-bottom: 3px solid #6FCF97;
 }
 
 .personal-label {
   display: inline-block;
-  color: #E8C97A;
-  background: rgba(232, 201, 122, 0.12);
-  border: 1px solid rgba(232, 201, 122, 0.25);
+  color: #6FCF97;
+  background: rgba(111, 207, 151, 0.12);
+  border: 1px solid rgba(111, 207, 151, 0.25);
   border-radius: 4px;
   padding: 6px 14px;
   font-size: 11px;
@@ -32,7 +32,7 @@
 }
 
 .personal-hero p {
-  color: #A0A0C0;
+  color: #B3A3C7;
   font-size: 16px;
   line-height: 1.7;
   max-width: 560px;
@@ -63,7 +63,7 @@
   font-family: "DM Serif Display", serif;
   font-size: 28px;
   font-weight: 400;
-  color: #1A1A2E;
+  color: #2D1B4E;
 }
 
 .personal-cards {
@@ -105,7 +105,7 @@
 
 .personal-card h3 {
   font-size: 18px;
-  color: #1A1A2E;
+  color: #2D1B4E;
   margin-bottom: 8px;
 }
 
@@ -121,9 +121,9 @@
   padding-top: 18px;
   background: none;
   border: none;
-  border-bottom: 2px solid #E8C97A;
+  border-bottom: 2px solid #6FCF97;
   padding-bottom: 2px;
-  color: #1A1A2E;
+  color: #2D1B4E;
   font-family: "DM Sans", sans-serif;
   font-size: 13px;
   font-weight: 700;
@@ -131,7 +131,7 @@
 }
 
 .personal-card button:hover {
-  color: #A87500;
+  color: #2F8F63;
 }
 
 .subjects-section {
@@ -139,8 +139,8 @@
 }
 
 .add-subject-btn {
-  background: #1A1A2E;
-  color: #E8C97A;
+  background: #2D1B4E;
+  color: #6FCF97;
   border: none;
   border-radius: 7px;
   padding: 11px 18px;
@@ -151,7 +151,7 @@
 }
 
 .add-subject-btn:hover {
-  background: #2D2D4A;
+  background: #3D2A63;
 }
 
 .subjects-empty {
@@ -181,7 +181,7 @@
 
 .subjects-empty h3 {
   font-size: 18px;
-  color: #1A1A2E;
+  color: #2D1B4E;
   margin-bottom: 7px;
 }
 
@@ -192,8 +192,8 @@
 }
 
 .empty-add-btn {
-  background: #1A1A2E;
-  color: #E8C97A;
+  background: #2D1B4E;
+  color: #6FCF97;
   border: none;
   border-radius: 7px;
   padding: 11px 20px;
@@ -204,7 +204,7 @@
 }
 
 .empty-add-btn:hover {
-  background: #2D2D4A;
+  background: #3D2A63;
 }
 
 @media (max-width: 1000px) {
@@ -288,7 +288,7 @@
 
 .subject-card h3 {
   font-size: 20px;
-  color: #1A1A2E;
+  color: #2D1B4E;
   margin-bottom: 8px;
 }
 
@@ -309,7 +309,7 @@
   width: 44px;
   height: 44px;
   border-radius: 10px;
-  background: #1A1A2E;
+  background: #2D1B4E;
   color: #F5F2EC;
   display: flex;
   align-items: center;
@@ -328,7 +328,7 @@
 }
 
 .subject-card-delete:hover {
-  color: #1A1A2E;
+  color: #2D1B4E;
 }
 
 /* MODAL */
@@ -336,7 +336,7 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(10, 10, 20, 0.65);
+  background: rgba(24, 14, 40, 0.65);
   backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
@@ -359,7 +359,7 @@
   font-family: "DM Serif Display", serif;
   font-size: 28px;
   font-weight: 400;
-  color: #1A1A2E;
+  color: #2D1B4E;
   margin-bottom: 28px;
 }
 
@@ -381,7 +381,7 @@
   border: 1px solid #D8D4CC;
   border-radius: 8px;
   background: #F8F6F2;
-  color: #1A1A2E;
+  color: #2D1B4E;
   font-family: "DM Sans", sans-serif;
   font-size: 14px;
   outline: none;
@@ -389,7 +389,7 @@
 
 .subject-modal input:focus,
 .subject-modal textarea:focus {
-  border-color: #1A1A2E;
+  border-color: #2D1B4E;
   background: #FFFFFF;
 }
 
@@ -414,7 +414,7 @@
 
 .modal-close:hover {
   background: #E8E4DC;
-  color: #1A1A2E;
+  color: #2D1B4E;
 }
 
 .modal-actions {
@@ -440,12 +440,12 @@
 }
 
 .modal-add {
-  background: #1A1A2E;
-  color: #E8C97A;
+  background: #2D1B4E;
+  color: #6FCF97;
 }
 
 .modal-add:hover {
-  background: #2D2D4A;
+  background: #3D2A63;
 }
 
 @media (max-width: 600px) {
@@ -460,9 +460,9 @@
   padding-top: 18px;
   background: none;
   border: none;
-  border-bottom: 2px solid #E8C97A;
+  border-bottom: 2px solid #6FCF97;
   padding-bottom: 2px;
-  color: #1A1A2E;
+  color: #2D1B4E;
   font-family: "DM Sans", sans-serif;
   font-size: 13px;
   font-weight: 700;
@@ -470,7 +470,7 @@
 }
 
 .subject-card button:hover {
-  color: #A87500;
+  color: #2F8F63;
 }
 
 @media (max-width: 1000px) {

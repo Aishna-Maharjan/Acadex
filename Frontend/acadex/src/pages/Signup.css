@@ -12,7 +12,7 @@
   align-items: center;
   padding: 40px 24px;
   font-family: 'DM Sans', sans-serif;
-  color: #1A1A2E;
+  color: #2D1B4E;
 }
 
 .signup-card {
@@ -22,7 +22,7 @@
   border-radius: 16px;
   padding: 44px 40px;
   border: 1px solid #E8E4DC;
-  box-shadow: 0 8px 30px rgba(26, 26, 46, 0.08);
+  box-shadow: 0 8px 30px rgba(45, 27, 78, 0.08);
 }
 
 .signup-header {
@@ -34,7 +34,7 @@
   font-family: 'DM Serif Display', serif;
   font-size: 42px;
   font-weight: 400;
-  color: #1A1A2E;
+  color: #2D1B4E;
   margin-bottom: 8px;
 }
 
@@ -65,13 +65,13 @@
   font-family: 'DM Sans', sans-serif;
   font-size: 15px;
   background: #F8F6F2;
-  color: #1A1A2E;
+  color: #2D1B4E;
   outline: none;
   transition: border-color 0.2s, background 0.2s;
 }
 
 .form-group input:focus {
-  border-color: #1A1A2E;
+  border-color: #2D1B4E;
   background: #FFFFFF;
 }
 
@@ -94,8 +94,8 @@
   margin-top: 8px;
   border: none;
   border-radius: 8px;
-  background: #1A1A2E;
-  color: #E8C97A;
+  background: #2D1B4E;
+  color: #6FCF97;
   font-family: 'DM Sans', sans-serif;
   font-size: 15px;
   font-weight: 700;
@@ -104,7 +104,7 @@
 }
 
 .signup-btn:hover {
-  background: #2D2D4A;
+  background: #3D2A63;
   transform: translateY(-1px);
 }
 
@@ -116,13 +116,13 @@
 }
 
 .login-text span {
-  color: #1A1A2E;
+  color: #2D1B4E;
   font-weight: 700;
   cursor: pointer;
 }
 
 .login-text span:hover {
-  color: #E8A020;
+  color: #3FA377;
 }
 
 @media (max-width: 600px) {

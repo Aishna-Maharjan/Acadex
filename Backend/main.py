@@ -8,22 +8,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from auth import login_user
 from subjects import create_subject, get_subjects, delete_subject, update_subject
-from resources import (
-    create_resource,
-    get_resources,
-    update_resource,
-    delete_resource,
-    toggle_favorite,
-    search_resources
-)
-from community import create_post, get_posts, delete_post
+from resources import (create_resource,get_resources,update_resource,delete_resource,toggle_favorite,search_resources)
+from community import create_post, get_posts, delete_post, search_posts, update_post
 from like import like_post, unlike_post, get_post_likes
-from notifications import (
-    create_notification,
-    get_notifications,
-    mark_notification_read
-)
+from notifications import (create_notification,get_notifications,mark_notification_read)
 from comments import create_comment, get_comments, delete_comment
+from admin import get_all_users,admin_delete_post,get_dashboard_stats
 
 load_dotenv()
 
@@ -87,6 +77,13 @@ class LikeRequest(BaseModel):
 class CommentRequest(BaseModel):
     user_id: int
     comment: str
+
+class CommunityPostUpdateRequest(BaseModel):
+    user_id: int
+    title: str
+    description: str
+    resource_type: str
+    resource_url: str
 
 @app.post("/signup")
 def signup(user: SignupRequest):
@@ -622,4 +619,96 @@ def remove_comment(comment_id: int, user_id: int):
 
     return {
         "message": "Comment deleted successfully!"
+    }
+
+@app.get("/community/search")
+def search_community_posts(keyword: str):
+    posts = search_posts(keyword)
+    return {
+        "posts": [
+            {
+                "id": post[0],
+                "user_id": post[1],
+                "username": post[2],
+                "title": post[3],
+                "description": post[4],
+                "resource_type": post[5],
+                "resource_url": post[6],
+                "created_at": post[7]
+            }
+            for post in posts
+        ]
+    }
+
+@app.put("/community/{post_id}")
+def edit_post(post_id: int, post: CommunityPostUpdateRequest):
+
+    updated_post = update_post(
+        post_id,
+        post.user_id,
+        post.title,
+        post.description,
+        post.resource_type,
+        post.resource_url
+    )
+
+    if updated_post is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Post not found or you are not the owner"
+        )
+
+    return {
+        "message": "Post updated successfully!",
+        "post": {
+            "id": updated_post[0],
+            "user_id": updated_post[1],
+            "title": updated_post[2],
+            "description": updated_post[3],
+            "resource_type": updated_post[4],
+            "resource_url": updated_post[5],
+            "created_at": updated_post[6]
+        }
+    }
+
+@app.get("/admin/users")
+def fetch_all_users():
+
+    users = get_all_users()
+
+    return {
+        "users": [
+            {
+                "id": user[0],
+                "name": user[1],
+                "username": user[2],
+                "email": user[3],
+                "created_at": user[4]
+            }
+            for user in users
+        ]
+    }
+
+@app.delete("/admin/community/{post_id}")
+def admin_remove_post(post_id: int):
+
+    deleted = admin_delete_post(post_id)
+
+    if deleted is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Post not found"
+        )
+
+    return {
+        "message": "Post deleted successfully by admin!"
+    }
+
+@app.get("/admin/dashboard")
+def admin_dashboard():
+
+    stats = get_dashboard_stats()
+
+    return {
+        "dashboard": stats
     }

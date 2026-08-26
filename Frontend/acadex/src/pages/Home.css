@@ -1,22 +1,22 @@
 .dashboard-page {
   min-height: 100vh;
   background: #F0EDE8;
-  color: #1A1A2E;
+  color: #2D1B4E;
 }
 
 .dashboard-hero {
-  background: #1A1A2E;
+  background: #2D1B4E;
   padding: 70px 64px 76px;
-  border-bottom: 3px solid #E8C97A;
+  border-bottom: 3px solid #6FCF97;
 }
 
 .dashboard-label {
   display: inline-block;
 
-  color: #E8C97A;
-  background: rgba(232, 201, 122, 0.12);
+  color: #6FCF97;
+  background: rgba(111, 207, 151, 0.12);
 
-  border: 1px solid rgba(232, 201, 122, 0.25);
+  border: 1px solid rgba(111, 207, 151, 0.25);
   border-radius: 4px;
 
   padding: 6px 14px;
@@ -39,7 +39,7 @@
 }
 
 .dashboard-hero p {
-  color: #A0A0C0;
+  color: #B3A3C7;
 
   font-size: 16px;
   line-height: 1.7;
@@ -78,7 +78,7 @@
   font-size: 28px;
   font-weight: 400;
 
-  color: #1A1A2E;
+  color: #2D1B4E;
 }
 
 
@@ -113,7 +113,7 @@
 }
 
 .space-card:hover {
-  border-color: #1A1A2E;
+  border-color: #2D1B4E;
 }
 
 .space-icon {
@@ -150,7 +150,7 @@
   font-size: 21px;
   font-weight: 700;
 
-  color: #1A1A2E;
+  color: #2D1B4E;
 
   margin-bottom: 9px;
 }
@@ -174,12 +174,12 @@
 
   text-decoration: none;
 
-  color: #1A1A2E;
+  color: #2D1B4E;
 
   font-size: 14px;
   font-weight: 700;
 
-  border-bottom: 2px solid #E8C97A;
+  border-bottom: 2px solid #6FCF97;
 
   padding-bottom: 2px;
 
@@ -187,7 +187,7 @@
 }
 
 .space-button:hover {
-  color: #A87500;
+  color: #2F8F63;
 }
 
 .activity-section {
@@ -236,7 +236,7 @@
   font-size: 17px;
   font-weight: 700;
 
-  color: #1A1A2E;
+  color: #2D1B4E;
 
   margin-bottom: 6px;
 }

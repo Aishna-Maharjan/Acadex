@@ -1,0 +1,263 @@
+* {
+    box-sizing: border-box;
+}
+
+.community-page {
+    min-height: 100vh;
+    background: #F0EDE8;
+    padding: 40px 24px;
+    font-family: 'DM Sans', sans-serif;
+    color: #2D1B4E;
+}
+
+.community-header {
+    max-width: 850px;
+    margin: 0 auto 32px;
+}
+
+.community-header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 42px;
+    font-weight: 400;
+    margin-bottom: 6px;
+}
+
+.community-header p {
+    color: #8A8A9A;
+    font-size: 15px;
+}
+
+.community-posts {
+    max-width: 850px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.community-card {
+    background: #FFFFFF;
+    border: 1px solid #E8E4DC;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 6px 20px rgba(45, 27, 78, 0.06);
+}
+
+.post-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.post-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #2D1B4E;
+    color: #6FCF97;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+
+.post-header h3 {
+    font-size: 18px;
+    margin-bottom: 3px;
+}
+
+.post-header p {
+    color: #8A8A9A;
+    font-size: 13px;
+}
+
+.post-content {
+    margin-bottom: 20px;
+}
+
+.post-content p {
+    color: #5A5A6A;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.post-resource {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #F8F6F2;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+}
+
+.post-resource span {
+    color: #5A5A6A;
+}
+
+.post-resource a {
+    color: #2D1B4E;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.post-resource a:hover {
+    color: #3FA377;
+}
+
+.post-footer {
+    display: flex;
+    gap: 24px;
+    padding-top: 18px;
+    margin-top: 18px;
+    border-top: 1px solid #E8E4DC;
+    color: #8A8A9A;
+    font-size: 14px;
+}
+
+.post-footer span {
+    cursor: pointer;
+}
+
+.post-footer span:hover {
+    color: #2D1B4E;
+}
+
+@media (max-width: 600px) {
+    .community-page {
+        padding: 28px 16px;
+    }
+
+    .community-header h1 {
+        font-size: 36px;
+    }
+
+    .community-card {
+        padding: 20px;
+    }
+
+    .post-resource {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+
+.post-footer img {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+
+.comments-section {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.comments-section h4 {
+  margin: 0 0 14px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.comment-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.comment-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #e9eef5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.comment-content {
+  flex: 1;
+  background: #f7f8fa;
+  padding: 9px 12px;
+  border-radius: 10px;
+}
+
+.comment-content strong {
+  display: block;
+  font-size: 13px;
+  margin-bottom: 3px;
+}
+
+.comment-content p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.comment-content button {
+  margin-top: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-size: 12px;
+  color: #777;
+  cursor: pointer;
+}
+
+.comment-content button:hover {
+  text-decoration: underline;
+}
+
+.no-comments {
+  margin: 0 0 14px;
+  color: #888;
+  font-size: 14px;
+}
+
+.comment-input {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.comment-input input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #d9dde3;
+  border-radius: 8px;
+  outline: none;
+  font-size: 14px;
+}
+
+.comment-input input:focus {
+  border-color: #999;
+}
+
+.comment-input button {
+  padding: 10px 17px;
+  border: none;
+  border-radius: 8px;
+  background: #222;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.comment-input button:hover {
+  opacity: 0.85;
+}

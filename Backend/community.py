@@ -99,3 +99,78 @@ def delete_post(post_id, user_id):
     conn.close()
 
     return deleted
+
+def update_post(
+    post_id,
+    user_id,
+    title,
+    description,
+    resource_type,
+    resource_url
+):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        UPDATE community_posts
+        SET title = %s,
+            description = %s,
+            resource_type = %s,
+            resource_url = %s
+        WHERE id = %s AND user_id = %s
+        RETURNING id, user_id, title, description,
+                  resource_type, resource_url, created_at;
+        """,
+        (
+            title,
+            description,
+            resource_type,
+            resource_url,
+            post_id,
+            user_id
+        )
+    )
+
+    post = cur.fetchone()
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return post
+
+def search_posts(keyword):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        """
+        SELECT cp.id,
+               cp.user_id,
+               u.username,
+               cp.title,
+               cp.description,
+               cp.resource_type,
+               cp.resource_url,
+               cp.created_at
+        FROM community_posts cp
+        JOIN users u ON cp.user_id = u.id
+        WHERE cp.title ILIKE %s
+           OR cp.description ILIKE %s
+           OR cp.resource_type ILIKE %s
+        ORDER BY cp.created_at DESC;
+        """,
+        (
+            f"%{keyword}%",
+            f"%{keyword}%",
+            f"%{keyword}%"
+        )
+    )
+
+    posts = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return posts

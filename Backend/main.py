@@ -5,6 +5,8 @@ import os
 from dotenv import load_dotenv
 from pwdlib import PasswordHash
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Optional
+from datetime import datetime
 
 from auth import login_user
 from subjects import create_subject, get_subjects, delete_subject, update_subject
@@ -84,6 +86,47 @@ class CommunityPostUpdateRequest(BaseModel):
     description: str
     resource_type: str
     resource_url: str
+
+class SubjectCreate(BaseModel):
+    user_id: int
+    name: str
+    description: Optional[str] = ""
+
+class SubjectUpdate(BaseModel):
+    user_id: int
+    name: str
+    description: Optional[str] = ""
+
+class SubjectResponse(BaseModel):
+    id: int
+    user_id: int
+    name: str
+    description: Optional[str]
+    created_at: datetime
+
+class ResourceCreate(BaseModel):
+    subject_id: int
+    title: str
+    description: Optional[str] = ""
+    resource_type: str
+    resource_url: Optional[str] = ""
+
+class ResourceUpdate(BaseModel):
+    subject_id: int
+    title: str
+    description: Optional[str] = ""
+    resource_type: str
+    resource_url: Optional[str] = ""
+
+class ResourceResponse(BaseModel):
+    id: int
+    subject_id: int
+    title: str
+    description: Optional[str]
+    resource_type: str
+    resource_url: Optional[str]
+    is_favorite: bool
+    created_at: datetime
 
 @app.post("/signup")
 def signup(user: SignupRequest):

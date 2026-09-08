@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Personal from "./pages/Personal";
 import Community from "./pages/Community";
+import Subject from "./pages/Subject";
 
 export default function App() {
   return (
@@ -20,6 +21,8 @@ export default function App() {
         <Route path="/personal" element={<Personal />} />
 
         <Route path="/community" element={<Community />} />
+
+        <Route path="/subject/:id" element={<Subject />} />
 
         <Route
           path="*"

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import "./Personal.css";
 import SubjectGrid from "../components/SubjectGrid";
@@ -14,24 +14,118 @@ export default function Personal() {
   const [subjects, setSubjects] = useState([]);
   const [subjectName, setSubjectName] = useState("");
   const [description, setDescription] = useState("");
+  const userId = localStorage.getItem("userId"); //to save users info like id
 
-  const handleAddSubject = (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    const fetchSubjects = async () => {
+      if (!userId) {
+        console.log("No logged-in user found.");
+        return;
+      }
 
-    const newSubject = {
-      id: Date.now(),
-      name: subjectName,
-      description: description,
-      color: "#1A1A2E",
-      resources: [],
+      try {
+        const response = await fetch(
+          `http://127.0.0.1:8000/subjects/${userId}`,
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          console.error("Failed to fetch subjects:", data);
+          return;
+        }
+
+        const formattedSubjects = data.subjects.map((subject) => ({
+          ...subject,
+          color: "#1A1A2E",
+          resources: [],
+        }));
+
+        setSubjects(formattedSubjects);
+      } catch (error) {
+        console.error("Error fetching subjects:", error);
+      }
     };
 
-    setSubjects([...subjects, newSubject]);
+    fetchSubjects();
+  }, [userId]);
 
-    setSubjectName("");
-    setDescription("");
-    setShowModal(false);
+  const handleAddSubject = async (e) => {
+    e.preventDefault();
+
+    if (!userId) {
+      alert("Please log in first.");
+      return;
+    }
+
+    try {
+      const response = await fetch("http://127.0.0.1:8000/subjects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          name: subjectName,
+          description: description,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Failed to add subject:", data);
+        alert("Failed to add subject.");
+        return;
+      }
+
+      const newSubject = {
+        ...data.subject,
+        color: "#1A1A2E",
+        resources: [],
+      };
+
+      setSubjects((prevSubjects) => [newSubject, ...prevSubjects]);
+
+      setSubjectName("");
+      setDescription("");
+      setShowModal(false);
+    } catch (error) {
+      console.error("Error adding subject:", error);
+      alert("Could not connect to the server.");
+    }
   };
+  const handleDeleteSubject = async (id) => {
+    if (!userId) {
+      alert("Please log in first.");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/subjects/${id}?user_id=${userId}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Failed to delete subject:", data);
+        alert(data.detail || data.error || "Failed to delete subject.");
+        return;
+      }
+
+      setSubjects((prevSubjects) =>
+        prevSubjects.filter((subject) => subject.id !== id),
+      );
+    } catch (error) {
+      console.error("Error deleting subject:", error);
+      alert("Could not connect to the server.");
+    }
+  };
+
   return (
     <div className="personal-page">
       <Navbar />
@@ -135,9 +229,10 @@ export default function Personal() {
             </button>
           </div>
 
-          <SubjectGrid subjects={subjects} setSubjects={setSubjects} />
+          <SubjectGrid subjects={subjects} onDelete={handleDeleteSubject} />
         </section>
       </main>
+
       {showModal && (
         <div className="modal-overlay">
           <div className="subject-modal">

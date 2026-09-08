@@ -191,8 +191,9 @@ export default function Community() {
 
   return (
     <div className="community-page">
+      <Navbar />
+
       <div className="community-header">
-        <Navbar />
         <h1>Community</h1>
         <p>Share and discover useful academic resources.</p>
       </div>

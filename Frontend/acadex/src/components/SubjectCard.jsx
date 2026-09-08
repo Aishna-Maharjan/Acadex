@@ -39,19 +39,24 @@ export default function SubjectCard({
           title="Delete subject"
           aria-label={`Delete ${name}`}
         >
-          ×
+        x
         </button>
       </div>
 
-      <h3>{name}</h3>
+      <div className="subject-card-content">
+        <h3>{name}</h3>
 
-      <p>
-        {resourceCount} resource
-        {resourceCount !== 1 ? "s" : ""}
-      </p>
+        <p>
+          {resourceCount} resource
+          {resourceCount !== 1 ? "s" : ""}
+        </p>
+      </div>
 
-      <button onClick={() => navigate(`/subject/${id}`)}>
-        View guides →
+      <button
+        className="subject-card-view"
+        onClick={() => navigate(`/subject/${id}`)}
+      >
+        View Subject →
       </button>
     </div>
   );

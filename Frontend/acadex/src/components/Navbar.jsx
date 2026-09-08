@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { NavLink, Link } from "react-router-dom";
 import "./Navbar.css";
 
 import notification from "../assets/notification.png";
@@ -9,29 +9,48 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
-      <div className="logo-area">
-        <Link to="/home" className="logo">
-          Acadex
-        </Link>
-      </div>
+      <div className="navbar-inner">
+        {/* Logo */}
+        <div className="logo-area">
+          <Link to="/home" className="logo">
+            acadex
+          </Link>
+        </div>
 
-      <div className="nav-links">
-        <Link to="/home">Home</Link>
-        <Link to="/personal">Personal Space</Link>
-        <Link to="/community">Community</Link>
-      </div>
+        {/* Navigation */}
+        <div className="nav-links">
+          <NavLink
+            to="/home"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
+            Home
+          </NavLink>
 
-      <div className="nav-actions">
-        <button
-          className="icon-btn notification-btn"
-          aria-label="Notifications"
-        >
-          <img src={notification} alt="Notification" />
-        </button>
+          <NavLink
+            to="/personal"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
+            Personal
+          </NavLink>
 
-        <Link to="/profile" className="profile-avatar" aria-label="Profile">
-          {initial}
-        </Link>
+          <NavLink
+            to="/community"
+            className={({ isActive }) => (isActive ? "active" : "")}
+          >
+            Community
+          </NavLink>
+        </div>
+
+        {/* Right side */}
+        <div className="nav-actions">
+          <button className="notification-btn" aria-label="Notifications">
+            <img src={notification} alt="Notifications" />
+          </button>
+
+          <Link to="/profile" className="profile-avatar" aria-label="Profile">
+            {initial}
+          </Link>
+        </div>
       </div>
     </nav>
   );

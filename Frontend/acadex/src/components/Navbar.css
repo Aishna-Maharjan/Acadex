@@ -3,11 +3,9 @@
     top: 0;
     z-index: 1000;
     width: 100%;
-    height: 68px;
-    background: rgba(255, 255, 255, 0.94);
-    border-bottom: 1px solid #E4E4E7;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    height: 72px;
+    background: #1A1A2E;
+    border-bottom: 1px solid rgba(232, 201, 122, 0.18);
     font-family: "DM Sans", sans-serif;
 }
 
@@ -28,22 +26,22 @@
 
 .logo {
     text-decoration: none;
-    color: #18181B;
-    font-family: "DM Sans", sans-serif;
-    font-size: 21px;
-    font-weight: 800;
-    letter-spacing: -0.7px;
+    color: #F5F2EC;
+    font-family: "DM Serif Display", Georgia, serif;
+    font-size: 25px;
+    font-weight: 400;
+    letter-spacing: 0;
     transition: color 0.2s ease;
 }
 
 .logo:hover {
-    color: #4F46E5;
+    color: #E8C97A;
 }
 
 .nav-links {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     margin-left: 58px;
 }
 
@@ -51,34 +49,32 @@
     position: relative;
     display: flex;
     align-items: center;
-    height: 68px;
-    padding: 0 14px;
-    color: #71717A;
+    height: 72px;
+    padding: 0 15px;
+    color: #A0A0C0;
     text-decoration: none;
     font-size: 14px;
     font-weight: 500;
-    transition:
-        color 0.2s ease,
-        background 0.2s ease;
+    transition: color 0.2s ease;
 }
 
 .nav-links a:hover {
-    color: #18181B;
+    color: #F5F2EC;
 }
 
 .nav-links a.active {
-    color: #4F46E5;
+    color: #E8C97A;
     font-weight: 600;
 }
 
 .nav-links a.active::after {
     content: "";
     position: absolute;
-    left: 14px;
-    right: 14px;
+    left: 15px;
+    right: 15px;
     bottom: 0;
     height: 2px;
-    background: #4F46E5;
+    background: #E8C97A;
     border-radius: 2px 2px 0 0;
 }
 
@@ -86,7 +82,6 @@
     display: flex;
     align-items: center;
     gap: 10px;
-
     margin-left: auto;
 }
 
@@ -97,25 +92,25 @@
     align-items: center;
     justify-content: center;
     padding: 0;
-    border: none;
+    border: 1px solid transparent;
     border-radius: 10px;
     background: transparent;
     cursor: pointer;
-    transition:
-        background 0.2s ease,
-        transform 0.2s ease;
+    transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .notification-btn img {
     width: 19px;
     height: 19px;
     object-fit: contain;
-    opacity: 0.65;
+    opacity: 0.7;
+    filter: brightness(0) invert(1);
     transition: opacity 0.2s ease;
 }
 
 .notification-btn:hover {
-    background: #F4F4F5;
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(232, 201, 122, 0.15);
 }
 
 .notification-btn:hover img {
@@ -129,21 +124,17 @@
     align-items: center;
     justify-content: center;
     border-radius: 11px;
-    background: #EEF2FF;
-    border: 1px solid #E0E7FF;
-    color: #4F46E5;
+    background: #E8C97A;
+    border: 1px solid #E8C97A;
+    color: #1A1A2E;
     text-decoration: none;
-   font-size: 14px;
+    font-size: 14px;
     font-weight: 700;
-  transition:
-        background 0.2s ease,
-        border-color 0.2s ease,
-        transform 0.2s ease;
+    transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .profile-avatar:hover {
-    background: #E0E7FF;
-    border-color: #C7D2FE;
+    background: #F0D998;
     transform: translateY(-1px);
 }
 
@@ -166,7 +157,6 @@
     }
 }
 
-
 @media (max-width: 600px) {
     .navbar {
         height: 62px;
@@ -181,10 +171,11 @@
     }
 
     .logo {
-        font-size: 20px;
+        font-size: 22px;
     }
 
-    .notification-btn,.profile-avatar {
+    .notification-btn,
+    .profile-avatar {
         width: 36px;
         height: 36px;
     }

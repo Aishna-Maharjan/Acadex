@@ -1,49 +1,86 @@
 import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
-import "./Personal.css";
 import SubjectGrid from "../components/SubjectGrid";
+import "./Personal.css";
 
-import search from "../assets/search.png";
 import sub from "../assets/sub.png";
 import resources from "../assets/resources.png";
-import track from "../assets/track.png";
-import cross from "../assets/cross.png";
+
+const API_BASE_URL = "http://127.0.0.1:8000";
 
 export default function Personal() {
   const [showModal, setShowModal] = useState(false);
   const [subjects, setSubjects] = useState([]);
   const [subjectName, setSubjectName] = useState("");
   const [description, setDescription] = useState("");
-  const userId = localStorage.getItem("userId"); //to save users info like id
+  const [loading, setLoading] = useState(true);
+
+  const userId = localStorage.getItem("userId");
 
   useEffect(() => {
     const fetchSubjects = async () => {
       if (!userId) {
         console.log("No logged-in user found.");
+        setLoading(false);
         return;
       }
 
       try {
         const response = await fetch(
-          `http://127.0.0.1:8000/subjects/${userId}`,
+          `${API_BASE_URL}/subjects/${userId}`
         );
 
         const data = await response.json();
 
         if (!response.ok) {
           console.error("Failed to fetch subjects:", data);
+          setLoading(false);
           return;
         }
+      
+        // Fetch resources for each subject so the Personal page can display the real resource count and favorites.
+        const subjectsWithResources = await Promise.all(
+          data.subjects.map(async (subject) => {
+            try {
+              const resourceResponse = await fetch(
+                `${API_BASE_URL}/resources/${subject.id}`
+              );
 
-        const formattedSubjects = data.subjects.map((subject) => ({
-          ...subject,
-          color: "#1A1A2E",
-          resources: [],
-        }));
+              const resourceData = await resourceResponse.json();
 
-        setSubjects(formattedSubjects);
+              if (!resourceResponse.ok) {
+                return {
+                  ...subject,
+                  color: "#2D1B4E",
+                  resources: [],
+                };
+              }
+
+              return {
+                ...subject,
+                color: "#2D1B4E",
+                resources: resourceData.resources || [],
+              };
+            } catch (error) {
+              console.error(
+                `Error fetching resources for subject ${subject.id}:`,
+                error
+              );
+
+              return {
+                ...subject,
+                color: "#2D1B4E",
+                resources: [],
+              };
+            }
+          })
+        );
+
+        setSubjects(subjectsWithResources);
       } catch (error) {
         console.error("Error fetching subjects:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -58,16 +95,20 @@ export default function Personal() {
       return;
     }
 
+    if (!subjectName.trim()) {
+      return;
+    }
+
     try {
-      const response = await fetch("http://127.0.0.1:8000/subjects", {
+      const response = await fetch(`${API_BASE_URL}/subjects`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          user_id: userId,
-          name: subjectName,
-          description: description,
+          user_id: parseInt(userId),
+          name: subjectName.trim(),
+          description: description.trim(),
         }),
       });
 
@@ -75,17 +116,20 @@ export default function Personal() {
 
       if (!response.ok) {
         console.error("Failed to add subject:", data);
-        alert("Failed to add subject.");
+        alert(data.detail || data.error || "Failed to add subject.");
         return;
       }
 
       const newSubject = {
         ...data.subject,
-        color: "#1A1A2E",
+        color: "#2D1B4E",
         resources: [],
       };
 
-      setSubjects((prevSubjects) => [newSubject, ...prevSubjects]);
+      setSubjects((prevSubjects) => [
+        newSubject,
+        ...prevSubjects,
+      ]);
 
       setSubjectName("");
       setDescription("");
@@ -95,6 +139,7 @@ export default function Personal() {
       alert("Could not connect to the server.");
     }
   };
+
   const handleDeleteSubject = async (id) => {
     if (!userId) {
       alert("Please log in first.");
@@ -103,22 +148,26 @@ export default function Personal() {
 
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/subjects/${id}?user_id=${userId}`,
+        `${API_BASE_URL}/subjects/${id}?user_id=${userId}`,
         {
           method: "DELETE",
-        },
+        }
       );
 
       const data = await response.json();
 
       if (!response.ok) {
         console.error("Failed to delete subject:", data);
-        alert(data.detail || data.error || "Failed to delete subject.");
+        alert(
+          data.detail ||
+            data.error ||
+            "Failed to delete subject."
+        );
         return;
       }
 
       setSubjects((prevSubjects) =>
-        prevSubjects.filter((subject) => subject.id !== id),
+        prevSubjects.filter((subject) => subject.id !== id)
       );
     } catch (error) {
       console.error("Error deleting subject:", error);
@@ -126,91 +175,97 @@ export default function Personal() {
     }
   };
 
+  const totalResources = subjects.reduce(
+    (total, subject) => total + (subject.resources?.length || 0),
+    0
+  );
+
+  const totalFavorites = subjects.reduce(
+    (total, subject) =>
+      total +
+      (subject.resources?.filter(
+        (resource) =>
+          resource.is_favorite === true ||
+          resource.is_favorite === 1
+      ).length || 0),
+    0
+  );
+
   return (
     <div className="personal-page">
       <Navbar />
 
       <main>
         <section className="personal-hero">
-          <h1>Study Hub</h1>
+          <div className="personal-hero-inner">
 
-          <p>
-            Organize your subjects, study materials and learning activities in
-            one personal space.
-          </p>
+            <h1>Keep your study life in one place.</h1>
+
+            <p>
+              Organize your subjects, notes, documents and
+              other academic resources in one simple space.
+            </p>
+          </div>
         </section>
 
         <section className="personal-dashboard">
           <div className="personal-section-heading">
             <div>
-              <h2>
-                <b>Your Study Space</b>
-              </h2>
+              <span className="personal-section-label">
+                OVERVIEW
+              </span>
+
+              <h2>Your Study Space</h2>
             </div>
           </div>
 
-          <div className="personal-cards">
-            <div className="personal-card">
-              <div className="personal-card-icon">
-                <img src={sub} alt="Logo" />
+          <div className="personal-stats">
+            <div className="personal-stat">
+              <div className="personal-stat-icon">
+                <img src={sub} alt="" />
               </div>
 
               <div>
-                <span className="personal-card-number">01</span>
-                <h3>Subjects</h3>
-                <p>Organize your subjects and access their study materials.</p>
-              </div>
+                <span className="personal-stat-number">
+                  {subjects.length.toString().padStart(2, "0")}
+                </span>
 
-              <button>View Subjects →</button>
+                <span className="personal-stat-label">
+                  Subjects
+                </span>
+              </div>
             </div>
 
-            <div className="personal-card">
-              <div className="personal-card-icon">
-                <img src={resources} alt="Logo" />
+            <div className="personal-stat">
+              <div className="personal-stat-icon">
+                <img src={resources} alt="" />
               </div>
 
               <div>
-                <span className="personal-card-number">02</span>
-                <h3>Resources</h3>
-                <p>
-                  Keep your notes, documents and useful academic resources
-                  organized.
-                </p>
-              </div>
+                <span className="personal-stat-number">
+                  {totalResources.toString().padStart(2, "0")}
+                </span>
 
-              <button>View Resources →</button>
+                <span className="personal-stat-label">
+                  Resources
+                </span>
+              </div>
             </div>
 
-            <div className="personal-card">
-              <div className="personal-card-icon">
-                <img src={search} alt="Logo" />
+            <div className="personal-stat">
+              <div className="personal-stat-icon personal-stat-star">
+                ★
               </div>
 
               <div>
-                <span className="personal-card-number">03</span>
-                <h3>Search</h3>
-                <p>
-                  Quickly find resources and materials from your study space.
-                </p>
+                <span className="personal-stat-number">
+                  {totalFavorites.toString().padStart(2, "0")}
+                </span>
+
+                <span className="personal-stat-label">
+                  Favorites
+                </span>
               </div>
-
-              <button>Search Resources →</button>
-            </div>
-
-            <div className="personal-card">
-              <div className="personal-card-icon">
-                <img src={track} alt="Logo" />
-              </div>
-
-              <div>
-                <span className="personal-card-number">04</span>
-                <h3>Progress</h3>
-                <p>
-                  Keep track of your learning activities and study progress.
-                </p>
-              </div>
-
-              <button>View Progress →</button>
             </div>
           </div>
         </section>
@@ -218,7 +273,11 @@ export default function Personal() {
         <section className="subjects-section">
           <div className="personal-section-heading">
             <div>
-              <h2>Subjects</h2>
+              <span className="personal-section-label">
+                ORGANIZE YOUR LEARNING
+              </span>
+
+              <h2>Your Subjects</h2>
             </div>
 
             <button
@@ -229,36 +288,67 @@ export default function Personal() {
             </button>
           </div>
 
-          <SubjectGrid subjects={subjects} onDelete={handleDeleteSubject} />
+          {loading ? (
+            <div className="subjects-loading">
+              <p>Loading your subjects...</p>
+            </div>
+          ) : (
+            <SubjectGrid
+              subjects={subjects}
+              onDelete={handleDeleteSubject}
+            />
+          )}
         </section>
       </main>
 
       {showModal && (
-        <div className="modal-overlay">
+        <div
+          className="modal-overlay"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowModal(false);
+            }
+          }}
+        >
           <div className="subject-modal">
-            <button className="modal-close" onClick={() => setShowModal(false)}>
-              <img src={cross} alt="Logo" />
+            <button
+              className="modal-close"
+              type="button"
+              onClick={() => setShowModal(false)}
+              aria-label="Close"
+            >
+              x
             </button>
 
-            <h2>Add Subject</h2>
+            <h2><b>Add Subject</b></h2>
 
             <form onSubmit={handleAddSubject}>
-              <label>Subject Name</label>
+              <label htmlFor="subject-name">
+                Subject Name
+              </label>
 
               <input
+                id="subject-name"
                 type="text"
                 placeholder="e.g. Web Technology"
                 value={subjectName}
-                onChange={(e) => setSubjectName(e.target.value)}
+                onChange={(e) =>
+                  setSubjectName(e.target.value)
+                }
                 required
               />
 
-              <label>Description</label>
+              <label htmlFor="subject-description">
+                Description
+              </label>
 
               <textarea
+                id="subject-description"
                 placeholder="Describe your subject..."
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) =>
+                  setDescription(e.target.value)
+                }
               />
 
               <div className="modal-actions">
@@ -270,7 +360,10 @@ export default function Personal() {
                   Cancel
                 </button>
 
-                <button type="submit" className="modal-add">
+                <button
+                  type="submit"
+                  className="modal-add"
+                >
                   Add Subject
                 </button>
               </div>

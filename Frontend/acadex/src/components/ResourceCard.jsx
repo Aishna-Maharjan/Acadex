@@ -1,11 +1,17 @@
 import React, { useState } from "react";
 
+import pdf from "../assets/pdf.png";
+import doc from "../assets/doc.png";
+import notes from "../assets/notes.png";
+import video from "../assets/video.png";
+import link from "../assets/link.png";
+
 const TYPE_ICONS = {
-  PDF: "📄",
-  Link: "🔗",
-  DOC: "📝",
-  Notes: "🗒️",
-  Video: "🎬",
+  PDF: pdf,
+  DOC: doc,
+  Notes: notes,
+  Video: video,
+  Link: link,
 };
 
 const ResourceCard = ({
@@ -13,6 +19,8 @@ const ResourceCard = ({
   onDelete,
   onUpdate,
   onToggleFavorite,
+  onShare,
+  alreadyShared,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
 
@@ -119,7 +127,7 @@ const ResourceCard = ({
       <div className="resource-card-header">
         <div className="resource-card-title-row">
           <span className="resource-type-icon">
-            {icon}
+            <img src={icon} alt={resourceType} />
           </span>
 
           <h3>{title}</h3>
@@ -129,9 +137,7 @@ const ResourceCard = ({
           <button
             type="button"
             onClick={() => onToggleFavorite(id)}
-            className={`icon-btn ${
-              isFavorite ? "fav-active" : ""
-            }`}
+            className={`icon-btn ${isFavorite ? "fav-active" : ""}`}
             title="Toggle favorite"
           >
             {isFavorite ? "★" : "☆"}
@@ -158,9 +164,7 @@ const ResourceCard = ({
       </div>
 
       <div className="resource-card-meta">
-        <span className="resource-type-badge">
-          {resourceType}
-        </span>
+        <span className="resource-type-badge">{resourceType}</span>
       </div>
 
       {resourceUrl && (
@@ -174,10 +178,20 @@ const ResourceCard = ({
         </a>
       )}
 
-      {description && (
-        <p className="resource-notes-preview">
-          {description}
-        </p>
+      {description && <p className="resource-notes-preview">{description}</p>}
+
+      {alreadyShared ? (
+        <div className="shared-community-label">✓ Shared to Community</div>
+      ) : (
+        onShare && (
+          <button
+            type="button"
+            className="share-community-btn"
+            onClick={() => onShare(resource)}
+          >
+            Share to Community
+          </button>
+        )
       )}
     </div>
   );

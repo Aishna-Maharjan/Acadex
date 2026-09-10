@@ -5,6 +5,9 @@ import Navbar from "../components/Navbar";
 import ResourceCard from "../components/ResourceCard";
 
 import "./Subject.css";
+import fav from "../assets/fav.png"
+import empty from "../assets/empty.png";
+import device from "../assets/device.png";
 
 const API_URL = "http://127.0.0.1:8000";
 
@@ -16,9 +19,15 @@ function Subject() {
 
   const [subject, setSubject] = useState(null);
   const [resources, setResources] = useState([]);
+  const [allResources, setAllResources] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [resourceTitle, setResourceTitle] = useState("");
+  const [resourceDescription, setResourceDescription] = useState("");
+  const [resourceType, setResourceType] = useState("LINK");
+  const [resourceUrl, setResourceUrl] = useState("");
+  const [addingResource, setAddingResource] = useState(false);
 
   const [activeView, setActiveView] = useState("dashboard");
   const [filterType, setFilterType] = useState("ALL");
@@ -28,9 +37,16 @@ function Subject() {
   const [subjectName, setSubjectName] = useState("");
   const [subjectDescription, setSubjectDescription] = useState("");
 
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [resourceToShare, setResourceToShare] = useState(null);
+  const [sharingResource, setSharingResource] = useState(false);
+
+  const [communityPosts, setCommunityPosts] = useState([]);
+
   useEffect(() => {
     fetchSubject();
     fetchResources();
+    fetchCommunityPosts();
   }, [id]);
 
   async function fetchSubject() {
@@ -43,8 +59,8 @@ function Subject() {
 
       const data = await response.json();
 
-      const foundSubject = data.find(
-        (item) => item.id.toString() === id.toString()
+      const foundSubject = data.subjects.find(
+        (item) => item.id.toString() === id.toString(),
       );
 
       if (foundSubject) {
@@ -66,7 +82,9 @@ function Subject() {
       }
 
       const data = await response.json();
-      setResources(data);
+
+      setResources(data.resources || []);
+      setAllResources(data.resources || []);
     } catch (error) {
       console.error("Error fetching resources:", error);
     } finally {
@@ -84,7 +102,7 @@ function Subject() {
 
     try {
       const response = await fetch(
-        `${API_URL}/resources/${id}/search?keyword=${encodeURIComponent(value)}`
+        `${API_URL}/resources/${id}/search?keyword=${encodeURIComponent(value)}`,
       );
 
       if (!response.ok) {
@@ -92,7 +110,8 @@ function Subject() {
       }
 
       const data = await response.json();
-      setResources(data);
+      setResources(data.resources || []);
+      setAllResources(data.resources || []);
     } catch (error) {
       console.error("Search error:", error);
     }
@@ -132,7 +151,7 @@ function Subject() {
 
   async function handleDeleteSubject() {
     const confirmed = window.confirm(
-      `Delete subject "${subject?.name}"? All its resources will be lost.`
+      `Delete subject "${subject?.name}"? All its resources will be lost.`,
     );
 
     if (!confirmed) return;
@@ -142,7 +161,7 @@ function Subject() {
         `${API_URL}/subjects/${id}?user_id=${userId}`,
         {
           method: "DELETE",
-        }
+        },
       );
 
       if (!response.ok) {
@@ -165,14 +184,16 @@ function Subject() {
         `${API_URL}/resources/${resourceId}?subject_id=${id}`,
         {
           method: "DELETE",
-        }
+        },
       );
 
       if (!response.ok) {
         throw new Error("Failed to delete resource");
       }
 
-      setResources((prev) => prev.filter((resource) => resource.id !== resourceId));
+      setResources((prev) =>
+        prev.filter((resource) => resource.id !== resourceId),
+      );
     } catch (error) {
       console.error("Error deleting resource:", error);
     }
@@ -184,7 +205,7 @@ function Subject() {
         `${API_URL}/resources/${resourceId}/favorite?subject_id=${id}`,
         {
           method: "PUT",
-        }
+        },
       );
 
       if (!response.ok) {
@@ -198,8 +219,8 @@ function Subject() {
                 ...resource,
                 is_favorite: !resource.is_favorite,
               }
-            : resource
-        )
+            : resource,
+        ),
       );
     } catch (error) {
       console.error("Error updating favorite:", error);
@@ -227,17 +248,115 @@ function Subject() {
 
       setResources((prev) =>
         prev.map((resource) =>
-          resource.id === resourceId ? updatedResource : resource
-        )
+          resource.id === resourceId ? updatedResource : resource,
+        ),
       );
     } catch (error) {
       console.error("Error updating resource:", error);
     }
   }
 
-  const totalResources = resources.length;
+  async function handleAddResource(e) {
+    e.preventDefault();
 
-  const recentResources = [...resources]
+    setAddingResource(true);
+
+    try {
+      const response = await fetch(`${API_URL}/resources`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          subject_id: Number(id),
+          title: resourceTitle,
+          description: resourceDescription,
+          resource_type: resourceType,
+          resource_url: resourceUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add resource");
+      }
+
+      await response.json();
+
+      setResourceTitle("");
+      setResourceDescription("");
+      setResourceType("LINK");
+      setResourceUrl("");
+
+      setShowModal(false);
+
+      await fetchResources();
+    } catch (error) {
+      console.error("Error adding resource:", error);
+    } finally {
+      setAddingResource(false);
+    }
+  }
+
+  async function handleShareToCommunity() {
+    if (!resourceToShare) return;
+
+    setSharingResource(true);
+
+    try {
+      const response = await fetch(`${API_URL}/community`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: Number(userId),
+          title: resourceToShare.title,
+          description: resourceToShare.description || "",
+          resource_type: resourceToShare.resource_type,
+          resource_url: resourceToShare.resource_url || "",
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to share resource");
+      }
+
+      const data = await response.json();
+
+      setCommunityPosts((prev) => [...prev, data.post]);
+
+      alert("Resource shared to Community successfully!");
+
+      setShowShareModal(false);
+      setResourceToShare(null);
+    } catch (error) {
+      console.error("Error sharing resource:", error);
+      alert(error.message);
+    } finally {
+      setSharingResource(false);
+    }
+  }
+
+  async function fetchCommunityPosts() {
+    try {
+      const response = await fetch(`${API_URL}/community`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch community posts");
+      }
+
+      const data = await response.json();
+
+      setCommunityPosts(data.posts || []);
+    } catch (error) {
+      console.error("Error fetching community posts:", error);
+    }
+  }
+
+  const totalResources = allResources.length;
+
+  const recentResources = [...allResources]
     .sort((a, b) => {
       const dateA = new Date(a.created_at || a.createdAt || 0);
       const dateB = new Date(b.created_at || b.createdAt || 0);
@@ -245,15 +364,14 @@ function Subject() {
     })
     .slice(0, 5);
 
-  const favoriteResources = resources.filter(
-    (resource) => resource.is_favorite
+  const favoriteResources = allResources.filter(
+    (resource) => resource.is_favorite,
   );
 
   const filteredResources = resources.filter((resource) => {
     const resourceType = resource.resource_type || "";
 
-    const matchesType =
-      filterType === "ALL" || resourceType === filterType;
+    const matchesType = filterType === "ALL" || resourceType === filterType;
 
     return matchesType;
   });
@@ -262,9 +380,7 @@ function Subject() {
     return (
       <>
         <Navbar />
-        <div className="subject-loading">
-          Loading subject...
-        </div>
+        <div className="subject-loading">Loading subject...</div>
       </>
     );
   }
@@ -276,9 +392,7 @@ function Subject() {
 
         <div className="subject-not-found">
           <h1>Subject not found</h1>
-          <p>
-            It may have been deleted.
-          </p>
+          <p>It may have been deleted.</p>
           <button onClick={() => navigate("/personal")}>
             Go to Personal →
           </button>
@@ -291,14 +405,11 @@ function Subject() {
     if (resourceList.length === 0) {
       return (
         <div className="resource-empty">
-          <span>📂</span>
+          <span><img src={device} alt="device" /></span>
           <h3>No resources here yet</h3>
           <p>Add your first study resource to this subject.</p>
 
-          <button
-            className="save-btn"
-            onClick={() => setShowModal(true)}
-          >
+          <button className="save-btn" onClick={() => setShowModal(true)}>
             + Add a resource
           </button>
         </div>
@@ -307,15 +418,29 @@ function Subject() {
 
     return (
       <div className="resource-grid">
-        {resourceList.map((resource) => (
-          <ResourceCard
-            key={resource.id}
-            resource={resource}
-            onDelete={handleDeleteResource}
-            onUpdate={handleUpdateResource}
-            onToggleFavorite={handleToggleFavorite}
-          />
-        ))}
+        {resourceList.map((resource) => {
+          const alreadyShared = communityPosts.some(
+            (post) =>
+              post.user_id === Number(userId) &&
+              post.title === resource.title &&
+              (post.resource_url || "") === (resource.resource_url || ""),
+          );
+
+          return (
+            <ResourceCard
+              key={resource.id}
+              resource={resource}
+              onDelete={handleDeleteResource}
+              onUpdate={handleUpdateResource}
+              onToggleFavorite={handleToggleFavorite}
+              alreadyShared={alreadyShared}
+              onShare={(resource) => {
+                setResourceToShare(resource);
+                setShowShareModal(true);
+              }}
+            />
+          );
+        })}
       </div>
     );
   }
@@ -326,18 +451,12 @@ function Subject() {
 
       <section className="subject-hero">
         <div className="subject-hero-inner">
-          <button
-            className="back-button"
-            onClick={() => navigate("/personal")}
-          >
+          <button className="back-button" onClick={() => navigate("/personal")}>
             ← All Subjects
           </button>
 
           {editingSubject ? (
-            <form
-              className="subject-edit-form"
-              onSubmit={handleUpdateSubject}
-            >
+            <form className="subject-edit-form" onSubmit={handleUpdateSubject}>
               <input
                 type="text"
                 value={subjectName}
@@ -347,21 +466,14 @@ function Subject() {
 
               <textarea
                 value={subjectDescription}
-                onChange={(e) =>
-                  setSubjectDescription(e.target.value)
-                }
+                onChange={(e) => setSubjectDescription(e.target.value)}
                 placeholder="Subject description"
               />
 
               <div className="subject-edit-actions">
-                <button type="submit">
-                  Save Changes
-                </button>
+                <button type="submit">Save Changes</button>
 
-                <button
-                  type="button"
-                  onClick={() => setEditingSubject(false)}
-                >
+                <button type="button" onClick={() => setEditingSubject(false)}>
                   Cancel
                 </button>
               </div>
@@ -372,15 +484,12 @@ function Subject() {
                 <div
                   className="subject-hero-dot"
                   style={{
-                    background:
-                      subject.color || "#E8C97A",
+                    background: subject.color || "#E8C97A",
                   }}
                 />
 
                 <div>
-                  <span className="subject-label">
-                    Subject
-                  </span>
+                  <span className="subject-label">Subject</span>
 
                   <h1>{subject.name}</h1>
                 </div>
@@ -396,9 +505,7 @@ function Subject() {
                   Edit Subject
                 </button>
 
-                <button onClick={handleDeleteSubject}>
-                  Delete Subject
-                </button>
+                <button onClick={handleDeleteSubject}>Delete Subject</button>
               </div>
             </>
           )}
@@ -454,20 +561,16 @@ function Subject() {
               </p>
             </div>
 
-            <span>★</span>
+            <span><img src={fav} alt="Fav" /></span>
           </button>
 
           <div className="dashboard-card add-resource-card">
             <div>
               <h2>Add Resource</h2>
-              <p>
-                Add PDFs, notes, links, and study materials
-              </p>
+              <p>Add PDFs, notes, links, and study materials</p>
             </div>
 
-            <button onClick={() => setShowModal(true)}>
-              + Add
-            </button>
+            <button onClick={() => setShowModal(true)}>+ Add</button>
           </div>
         </section>
 
@@ -482,9 +585,7 @@ function Subject() {
                 <h2>Resources</h2>
               </div>
 
-              <span className="resource-count">
-                {totalResources} total
-              </span>
+              <span className="resource-count">{totalResources} total</span>
             </div>
 
             {renderResourceCards(resources)}
@@ -502,9 +603,7 @@ function Subject() {
 
             <div className="resource-section-header">
               <div>
-                <span className="resource-section-label">
-                  Latest additions
-                </span>
+                <span className="resource-section-label">Latest additions</span>
 
                 <h2>Recently Added</h2>
               </div>
@@ -546,19 +645,15 @@ function Subject() {
             </div>
 
             <div className="filter-buttons">
-              {["ALL", "PDF", "Link", "DOC", "Notes", "Video"].map(
-                (type) => (
-                  <button
-                    key={type}
-                    onClick={() => setFilterType(type)}
-                    className={
-                      filterType === type ? "active" : ""
-                    }
-                  >
-                    {type}
-                  </button>
-                )
-              )}
+              {["ALL", "PDF", "LINK", "DOC", "Notes", "Video"].map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setFilterType(type)}
+                  className={filterType === type ? "active" : ""}
+                >
+                  {type}
+                </button>
+              ))}
             </div>
 
             {renderResourceCards(filteredResources)}
@@ -576,9 +671,7 @@ function Subject() {
 
             <div className="resource-section-header">
               <div>
-                <span className="resource-section-label">
-                  Saved resources
-                </span>
+                <span className="resource-section-label">Saved resources</span>
 
                 <h2>Favorites</h2>
               </div>
@@ -592,9 +685,7 @@ function Subject() {
               <div className="resource-empty">
                 <span>☆</span>
                 <h3>No favorites yet</h3>
-                <p>
-                  Click ☆ on a resource to save it here.
-                </p>
+                <p>Click ☆ on a resource to save it here.</p>
               </div>
             ) : (
               <div className="resource-grid">
@@ -612,17 +703,274 @@ function Subject() {
           </section>
         )}
       </main>
-
       {showModal && (
-        <AddResource
-          subject={subject}
-          subjects={[]}
-          setSubjects={() => {}}
-          onClose={() => {
-            setShowModal(false);
-            fetchResources();
-          }}
-        />
+        <div className="resource-modal-overlay">
+          <div className="resource-modal">
+            <div className="resource-modal-header">
+              <div>
+                <span className="resource-section-label">New resource</span>
+                <h2>Add Resource</h2>
+              </div>
+
+              <button
+                type="button"
+                className="modal-close-button"
+                onClick={() => setShowModal(false)}
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleAddResource}>
+              <div className="form-group">
+                <label>Title</label>
+                <input
+                  type="text"
+                  value={resourceTitle}
+                  onChange={(e) => setResourceTitle(e.target.value)}
+                  placeholder="Resource title"
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Description</label>
+                <textarea
+                  value={resourceDescription}
+                  onChange={(e) => setResourceDescription(e.target.value)}
+                  placeholder="What is this resource about?"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Resource Type</label>
+
+                <div className="resource-type-options">
+                  {["PDF", "LINK", "DOC", "Notes", "Video"].map((type) => (
+                    <button
+                      key={type}
+                      type="button"
+                      className={`resource-type-button ${
+                        resourceType === type ? "active" : ""
+                      }`}
+                      onClick={() => {
+                        setResourceType(type);
+                        setResourceUrl("");
+                      }}
+                    >
+                      {type === "PDF" && "📄 PDF"}
+                      {type === "LINK" && "🔗 Link"}
+                      {type === "DOC" && "📝 Document"}
+                      {type === "Notes" && "📓 Notes"}
+                      {type === "Video" && "🎥 Video"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {resourceType === "PDF" && (
+                <div className="form-group">
+                  <label>PDF File</label>
+
+                  <input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+
+                      if (file) {
+                        setResourceUrl(file.name);
+                      }
+                    }}
+                  />
+
+                  <p className="form-help">Choose a PDF from your device.</p>
+                </div>
+              )}
+              {resourceType === "DOC" && (
+                <div className="form-group">
+                  <label>Document File</label>
+
+                  <input
+                    type="file"
+                    accept=".doc,.docx,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+
+                      if (file) {
+                        setResourceUrl(file.name);
+                      }
+                    }}
+                  />
+
+                  <p className="form-help">
+                    Choose a Word document from your device.
+                  </p>
+                </div>
+              )}
+              {resourceType === "Notes" && (
+                <div className="form-group">
+                  <label>Notes</label>
+
+                  <textarea
+                    value={resourceDescription}
+                    onChange={(e) => setResourceDescription(e.target.value)}
+                    placeholder="Write your study notes here..."
+                    className="resource-notes-input"
+                  />
+                </div>
+              )}
+              {resourceType === "LINK" && (
+                <div className="form-group">
+                  <label>Website URL</label>
+
+                  <input
+                    type="url"
+                    value={resourceUrl}
+                    onChange={(e) => setResourceUrl(e.target.value)}
+                    placeholder="https://example.com"
+                    required
+                  />
+
+                  <p className="form-help">
+                    Add a website, article, documentation, or other online
+                    resource.
+                  </p>
+                </div>
+              )}
+              {resourceType === "Video" && (
+                <div className="form-group">
+                  <label>Video Source</label>
+
+                  <div className="video-source-options">
+                    <button
+                      type="button"
+                      className={`video-source-button ${
+                        resourceUrl.startsWith("youtube:") ? "active" : ""
+                      }`}
+                      onClick={() => setResourceUrl("youtube:")}
+                    >
+                      <img src={link} alt="Link" />Link
+                    </button>
+
+                    <button
+                      type="button"
+                      className={`video-source-button ${
+                        resourceUrl.startsWith("device:") ? "active" : ""
+                      }`}
+                      onClick={() => setResourceUrl("device:")}
+                    >
+                      <img src={device} alt="Device" /> Device 
+                    </button>
+                  </div>
+
+                  {resourceUrl.startsWith("youtube:") && (
+                    <input
+                      type="url"
+                      value={resourceUrl.replace("youtube:", "")}
+                      onChange={(e) =>
+                        setResourceUrl(`youtube:${e.target.value}`)
+                      }
+                      placeholder="https://youtube.com/watch?v=..."
+                      required
+                    />
+                  )}
+
+                  {resourceUrl === "device:" && (
+                    <input
+                      type="file"
+                      accept="video/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+
+                        if (file) {
+                          setResourceUrl(`device:${file.name}`);
+                        }
+                      }}
+                    />
+                  )}
+
+                  <p className="form-help">
+                    Choose a YouTube video or upload a video from your device.
+                  </p>
+                </div>
+              )}
+
+              <div className="resource-modal-actions">
+                <button type="button" onClick={() => setShowModal(false)}>
+                  Cancel
+                </button>
+
+                <button type="submit" disabled={addingResource}>
+                  {addingResource ? "Adding..." : "Add Resource"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {showShareModal && resourceToShare && (
+        <div className="share-modal-overlay">
+          <div className="share-modal">
+            <div className="share-modal-header">
+              <h2>Share to Community</h2>
+
+              <button
+                type="button"
+                className="share-modal-close"
+                onClick={() => {
+                  setShowShareModal(false);
+                  setResourceToShare(null);
+                }}
+              >
+                x
+              </button>
+            </div>
+
+            <div className="share-modal-content">
+              <div className="share-preview-icon"><img src={empty} alt="No resources" /></div>
+
+              <div>
+                <span className="share-preview-type">
+                  {resourceToShare.resource_type}
+                </span>
+
+                <h3>{resourceToShare.title}</h3>
+
+                <p>
+                  {resourceToShare.description ||
+                    "Share this academic resource with the Acadex community."}
+                </p>
+              </div>
+            </div>
+
+            <p className="share-modal-info">
+              This resource will be shared with other Acadex students.
+            </p>
+
+            <div className="share-modal-actions">
+              <button
+                type="button"
+                className="share-cancel-btn"
+                onClick={() => {
+                  setShowShareModal(false);
+                  setResourceToShare(null);
+                }}
+                disabled={sharingResource}
+              >
+                Cancel
+              </button>
+
+              <button
+                type="button"
+                className="share-confirm-btn"
+                onClick={handleShareToCommunity}
+                disabled={sharingResource}
+              >
+                {sharingResource ? "Sharing..." : "Share Resource"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

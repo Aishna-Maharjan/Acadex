@@ -16,36 +16,41 @@ def get_connection():
 
 
 def create_resource(subject_id, title, description, resource_type, resource_url):
-
     conn = get_connection()
     cur = conn.cursor()
 
-    cur.execute(
-        """
-        INSERT INTO resources
-        (subject_id, title, description, resource_type, resource_url)
-        VALUES (%s, %s, %s, %s, %s)
-        RETURNING id, subject_id, title, description,
-                  resource_type, resource_url, is_favorite, created_at;
-        """,
-        (
-            subject_id,
-            title,
-            description,
-            resource_type,
-            resource_url
+    try:
+        cur.execute(
+            """
+            INSERT INTO resources
+            (subject_id, title, description, resource_type, resource_url)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id, subject_id, title, description,
+                      resource_type, resource_url, is_favorite, created_at;
+            """,
+            (
+                subject_id,
+                title,
+                description,
+                resource_type,
+                resource_url
+            )
         )
-    )
 
-    resource = cur.fetchone()
+        resource = cur.fetchone()
 
-    conn.commit()
-    cur.close()
-    conn.close()
+        conn.commit()
 
-    return resource
+        return resource
 
+    except Exception as e:
+        conn.rollback()
+        print("CREATE RESOURCE ERROR:", e)
+        raise
 
+    finally:
+        cur.close()
+        conn.close()
 def get_resources(subject_id):
 
     conn = get_connection()

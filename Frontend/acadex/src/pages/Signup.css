@@ -11,8 +11,8 @@
   justify-content: center;
   align-items: center;
   padding: 40px 24px;
-  font-family: 'DM Sans', sans-serif;
-  color: #2D1B4E;
+  font-family: "DM Sans", sans-serif;
+  color: #1A1A2E;
 }
 
 .signup-card {
@@ -22,7 +22,7 @@
   border-radius: 16px;
   padding: 44px 40px;
   border: 1px solid #E8E4DC;
-  box-shadow: 0 8px 30px rgba(45, 27, 78, 0.08);
+  box-shadow: 0 8px 30px rgba(26, 26, 46, 0.08);
 }
 
 .signup-header {
@@ -31,16 +31,16 @@
 }
 
 .signup-header h1 {
-  font-family: 'DM Serif Display', serif;
+  font-family: "DM Serif Display", serif;
   font-size: 42px;
   font-weight: 400;
-  color: #2D1B4E;
+  color: #1A1A2E;
   margin-bottom: 8px;
 }
 
 .signup-header p {
   font-size: 15px;
-  color: #8A8A9A;
+  color: #777777;
 }
 
 .form-group {
@@ -52,7 +52,7 @@
   margin-bottom: 8px;
   font-size: 12px;
   font-weight: 700;
-  color: #5A5A6A;
+  color: #555555;
   text-transform: uppercase;
   letter-spacing: 0.8px;
 }
@@ -62,26 +62,27 @@
   padding: 14px 16px;
   border: 1px solid #D8D4CC;
   border-radius: 8px;
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   font-size: 15px;
   background: #F8F6F2;
-  color: #2D1B4E;
+  color: #1A1A2E;
   outline: none;
   transition: border-color 0.2s, background 0.2s;
 }
 
 .form-group input:focus {
-  border-color: #2D1B4E;
+  border-color: #1A1A2E;
   background: #FFFFFF;
 }
 
 .form-group input::placeholder {
-  color: #B0ACA4;
+  color: #AAA69E;
 }
 
 .signup-error {
-  color: #CC3333;
-  background: #FFE5E5;
+  color: #A33A3A;
+  background: #FCE8E8;
+  border: 1px solid #F0CACA;
   border-radius: 6px;
   padding: 10px 12px;
   font-size: 13px;
@@ -92,37 +93,44 @@
   width: 100%;
   padding: 14px;
   margin-top: 8px;
-  border: none;
+  border: 1px solid #1A1A2E;
   border-radius: 8px;
-  background: #2D1B4E;
-  color: #6FCF97;
-  font-family: 'DM Sans', sans-serif;
+  background: #1A1A2E;
+  color: #E8C97A;
+  font-family: "DM Sans", sans-serif;
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s, transform 0.15s;
+  transition: background 0.2s, color 0.2s, transform 0.15s;
 }
 
 .signup-btn:hover {
-  background: #3D2A63;
+  background: #E8C97A;
+  color: #1A1A2E;
   transform: translateY(-1px);
+}
+
+.signup-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .login-text {
   text-align: center;
   margin-top: 24px;
   font-size: 14px;
-  color: #8A8A9A;
+  color: #777777;
 }
 
 .login-text span {
-  color: #2D1B4E;
+  color: #1A1A2E;
   font-weight: 700;
   cursor: pointer;
 }
 
 .login-text span:hover {
-  color: #3FA377;
+  color: #8A7A52;
 }
 
 @media (max-width: 600px) {

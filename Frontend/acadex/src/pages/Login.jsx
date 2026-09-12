@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { API_URL } from "../utils/api";
 import "./Login.css";
 
 export default function Login() {
@@ -14,14 +15,14 @@ export default function Login() {
       ...formData,
       [e.target.name]: e.target.value,
     });
-  };
+  };  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/login", {
+      const response = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -31,24 +32,21 @@ export default function Login() {
 
       const data = await response.json();
 
+      console.log("LOGIN RESPONSE:", data);
+
       if (!response.ok) {
         setError(data.detail || "Login failed.");
         return;
       }
 
-      if (!response.ok) {
-        setError(data.error || data.detail || "Login failed.");
-        return;
-      }
-
+      localStorage.setItem("token", data.access_token);
       localStorage.setItem("userId", data.user.id);
       localStorage.setItem("userName", data.user.name);
       localStorage.setItem("username", data.user.username);
-
-      alert("Login successful!");
+      localStorage.setItem("role", data.user.role || "user");
 
       window.location.href = "/home";
-    } catch (err) {
+    } catch {
       setError("Could not connect to server.");
     }
   };

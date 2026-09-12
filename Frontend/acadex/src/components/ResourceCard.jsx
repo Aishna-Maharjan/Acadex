@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import { useState } from "react";
 
 import pdf from "../assets/pdf.png";
 import doc from "../assets/doc.png";
 import notes from "../assets/notes.png";
 import video from "../assets/video.png";
 import link from "../assets/link.png";
+import ResourcePreview from "./ResourcePreview";
 
 const TYPE_ICONS = {
   PDF: pdf,
@@ -23,6 +24,7 @@ const ResourceCard = ({
   alreadyShared,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   const id = resource.id || resource[0];
   const title = resource.title || resource[2];
@@ -168,14 +170,28 @@ const ResourceCard = ({
       </div>
 
       {resourceUrl && (
-        <a
-          href={resourceUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="resource-link"
-        >
-          Open Resource ↗
-        </a>
+        <div className="resource-card-open-row">
+          <button
+            type="button"
+            className="resource-link resource-preview-toggle"
+            onClick={() => setShowPreview((prev) => !prev)}
+          >
+            {showPreview ? "Hide Preview" : "Preview"}
+          </button>
+
+          <a
+            href={resourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="resource-link"
+          >
+            Open Resource ↗
+          </a>
+        </div>
+      )}
+
+      {showPreview && (
+        <ResourcePreview resourceType={resourceType} resourceUrl={resourceUrl} />
       )}
 
       {description && <p className="resource-notes-preview">{description}</p>}

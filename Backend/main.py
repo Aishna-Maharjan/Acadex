@@ -3,17 +3,37 @@ from typing import Optional
 
 import psycopg2
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pwdlib import PasswordHash
 from pydantic import BaseModel
 
 from admin import admin_delete_post, get_all_users, get_dashboard_stats
-from auth import login_user
+from auth import (
+    create_access_token,
+    get_current_user,
+    login_user,
+    require_admin,
+    require_self_or_admin,
+)
 from comments import create_comment, delete_comment, get_comments
 from community import create_post, delete_post, get_posts, search_posts, update_post
 from like import get_post_likes, like_post, unlike_post
-from notifications import create_notification, get_notifications, mark_notification_read
+from notifications import (
+    delete_notification,
+    get_notifications,
+    get_unread_count,
+    mark_all_notifications_read,
+    mark_notification_read,
+)
+from rating import (
+    PostNotFoundError,
+    RatingTableMissingError,
+    UserNotFoundError,
+    get_post_rating,
+    get_user_rating,
+    rate_post,
+)
 from resources import (
     create_resource,
     delete_resource,
@@ -23,6 +43,15 @@ from resources import (
     update_resource,
 )
 from subjects import create_subject, delete_subject, get_subjects, update_subject
+from users import (
+    EmailTakenError,
+    IncorrectPasswordError,
+    UserNotFoundError as ProfileUserNotFoundError,
+    UsernameTakenError,
+    change_password,
+    get_user_profile,
+    update_user_profile,
+)
 
 load_dotenv()
 
@@ -90,6 +119,22 @@ class CommentRequest(BaseModel):
     comment: str
 
 
+class RatingRequest(BaseModel):
+    user_id: int
+    rating: int
+
+
+class ProfileUpdateRequest(BaseModel):
+    name: str
+    username: str
+    email: str
+
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
 @app.post("/signup")
 def signup(user: SignupRequest):
     hashed_password = password_hasher.hash(user.password)
@@ -123,17 +168,25 @@ def signup(user: SignupRequest):
 
         conn.close()
 
-        return {
-            "message": "Account created successfully!",
-            "user": {
-                "id": new_user[0],
-                "name": new_user[1],
-                "username": new_user[2],
-                "email": new_user[3],
-                "role": new_user[4],
-            },
+        user_payload = {
+            "id": new_user[0],
+            "name": new_user[1],
+            "username": new_user[2],
+            "email": new_user[3],
+            "role": new_user[4],
         }
 
+        access_token = create_access_token(user_payload)
+
+        return {
+            "message": "Account created successfully!",
+            "user": user_payload,
+            "access_token": access_token,
+            "token_type": "bearer",
+        }
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -148,14 +201,28 @@ def login(user: LoginRequest):
             detail="Invalid username or password",
         )
 
+    access_token = create_access_token(logged_user)
+
     return {
         "message": "Login successful!",
         "user": logged_user,
+        "access_token": access_token,
+        "token_type": "bearer",
     }
 
 
+@app.get("/me")
+def read_current_user(current_user: dict = Depends(get_current_user)):
+    """Lets the frontend validate a stored token and recover the user's identity."""
+    try:
+        return get_user_profile(current_user["id"])
+    except ProfileUserNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
 @app.post("/subjects")
-def add_subject(subject: SubjectRequest):
+def add_subject(subject: SubjectRequest, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(subject.user_id, current_user)
     new_subject = create_subject(
         subject.user_id,
         subject.name,
@@ -175,7 +242,8 @@ def add_subject(subject: SubjectRequest):
 
 
 @app.get("/subjects/{user_id}")
-def fetch_subjects(user_id: int):
+def fetch_subjects(user_id: int, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(user_id, current_user)
     subjects = get_subjects(user_id)
 
     return {
@@ -193,7 +261,8 @@ def fetch_subjects(user_id: int):
 
 
 @app.put("/subjects/{subject_id}")
-def edit_subject(subject_id: int, subject: SubjectRequest):
+def edit_subject(subject_id: int, subject: SubjectRequest, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(subject.user_id, current_user)
     updated_subject = update_subject(
         subject_id,
         subject.user_id,
@@ -220,7 +289,8 @@ def edit_subject(subject_id: int, subject: SubjectRequest):
 
 
 @app.delete("/subjects/{subject_id}")
-def remove_subject(subject_id: int, user_id: int):
+def remove_subject(subject_id: int, user_id: int, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(user_id, current_user)
     deleted = delete_subject(subject_id, user_id)
 
     if deleted is None:
@@ -233,7 +303,7 @@ def remove_subject(subject_id: int, user_id: int):
 
 
 @app.post("/resources")
-def add_resource(resource: ResourceRequest):
+def add_resource(resource: ResourceRequest, current_user: dict = Depends(get_current_user)):
     new_resource = create_resource(
         resource.subject_id,
         resource.title,
@@ -258,7 +328,7 @@ def add_resource(resource: ResourceRequest):
 
 
 @app.get("/resources/{subject_id}")
-def fetch_resources(subject_id: int):
+def fetch_resources(subject_id: int, current_user: dict = Depends(get_current_user)):
     resources = get_resources(subject_id)
 
     return {
@@ -279,7 +349,7 @@ def fetch_resources(subject_id: int):
 
 
 @app.get("/resources/{subject_id}/search")
-def search_resource(subject_id: int, keyword: str):
+def search_resource(subject_id: int, keyword: str, current_user: dict = Depends(get_current_user)):
     resources = search_resources(subject_id, keyword)
 
     return {
@@ -300,7 +370,7 @@ def search_resource(subject_id: int, keyword: str):
 
 
 @app.put("/resources/{resource_id}")
-def edit_resource(resource_id: int, resource: ResourceRequest):
+def edit_resource(resource_id: int, resource: ResourceRequest, current_user: dict = Depends(get_current_user)):
     updated_resource = update_resource(
         resource_id,
         resource.subject_id,
@@ -332,7 +402,7 @@ def edit_resource(resource_id: int, resource: ResourceRequest):
 
 
 @app.put("/resources/{resource_id}/favorite")
-def favorite_resource(resource_id: int, subject_id: int):
+def favorite_resource(resource_id: int, subject_id: int, current_user: dict = Depends(get_current_user)):
     resource = toggle_favorite(resource_id, subject_id)
 
     if resource is None:
@@ -353,7 +423,7 @@ def favorite_resource(resource_id: int, subject_id: int):
 
 
 @app.delete("/resources/{resource_id}")
-def remove_resource(resource_id: int, subject_id: int):
+def remove_resource(resource_id: int, subject_id: int, current_user: dict = Depends(get_current_user)):
     deleted = delete_resource(resource_id, subject_id)
 
     if deleted is None:
@@ -366,7 +436,8 @@ def remove_resource(resource_id: int, subject_id: int):
 
 
 @app.post("/community")
-def add_post(post: CommunityPostRequest):
+def add_post(post: CommunityPostRequest, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(post.user_id, current_user)
     new_post = create_post(
         post.user_id,
         post.title,
@@ -432,7 +503,8 @@ def search_community_posts(keyword: str):
 
 
 @app.put("/community/{post_id}")
-def edit_post(post_id: int, post: CommunityPostUpdateRequest):
+def edit_post(post_id: int, post: CommunityPostUpdateRequest, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(post.user_id, current_user)
     updated_post = update_post(
         post_id,
         post.user_id,
@@ -463,7 +535,8 @@ def edit_post(post_id: int, post: CommunityPostUpdateRequest):
 
 
 @app.delete("/community/{post_id}")
-def remove_post(post_id: int, user_id: int):
+def remove_post(post_id: int, user_id: int, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(user_id, current_user)
     deleted = delete_post(post_id, user_id)
 
     if deleted is None:
@@ -476,48 +549,22 @@ def remove_post(post_id: int, user_id: int):
 
 
 @app.post("/community/{post_id}/like")
-def add_like(post_id: int, like: LikeRequest):
+def add_like(post_id: int, like: LikeRequest, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(like.user_id, current_user)
+    # like_post() already creates the "like" notification internally
+    # (see like.py) — do not create a second one here, or the post
+    # owner will receive a duplicate notification for the same like.
     result = like_post(post_id, like.user_id)
 
     if result is None:
         return {"message": "Post already liked!"}
 
-    conn = psycopg2.connect(
-        host=os.getenv("DB_HOST"),
-        port=os.getenv("DB_PORT"),
-        dbname=os.getenv("DB_NAME"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASSWORD"),
-    )
-
-    with conn.cursor() as cur:
-        cur.execute(
-            """
-            SELECT user_id
-            FROM community_posts
-            WHERE id = %s;
-            """,
-            (post_id,),
-        )
-
-        post_owner = cur.fetchone()
-
-    conn.close()
-
-    if post_owner and post_owner[0] != like.user_id:
-        create_notification(
-            user_id=post_owner[0],
-            sender_id=like.user_id,
-            notification_type="like",
-            message="Someone liked your post.",
-            post_id=post_id,
-        )
-
     return {"message": "Post liked successfully!"}
 
 
 @app.delete("/community/{post_id}/like")
-def remove_like(post_id: int, user_id: int):
+def remove_like(post_id: int, user_id: int, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(user_id, current_user)
     result = unlike_post(post_id, user_id)
 
     if result is None:
@@ -538,7 +585,8 @@ def count_likes(post_id: int):
 
 
 @app.post("/community/{post_id}/comments")
-def add_comment(post_id: int, comment: CommentRequest):
+def add_comment(post_id: int, comment: CommentRequest, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(comment.user_id, current_user)
     new_comment = create_comment(
         post_id,
         comment.user_id,
@@ -577,7 +625,8 @@ def fetch_comments(post_id: int):
 
 
 @app.delete("/community/comments/{comment_id}")
-def remove_comment(comment_id: int, user_id: int):
+def remove_comment(comment_id: int, user_id: int, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(user_id, current_user)
     deleted = delete_comment(comment_id, user_id)
 
     if deleted is None:
@@ -590,7 +639,8 @@ def remove_comment(comment_id: int, user_id: int):
 
 
 @app.get("/notifications/{user_id}")
-def fetch_notifications(user_id: int):
+def fetch_notifications(user_id: int, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(user_id, current_user)
     notifications = get_notifications(user_id)
 
     return {
@@ -604,14 +654,24 @@ def fetch_notifications(user_id: int):
                 "post_id": notification[5],
                 "is_read": notification[6],
                 "created_at": notification[7],
+                "sender_username": notification[8],
+                "sender_name": notification[9],
+                "post_title": notification[10],
             }
             for notification in notifications
         ]
     }
 
 
+@app.get("/notifications/{user_id}/unread-count")
+def fetch_unread_count(user_id: int, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(user_id, current_user)
+    return {"unread_count": get_unread_count(user_id)}
+
+
 @app.put("/notifications/{notification_id}/read")
-def read_notification(notification_id: int, user_id: int):
+def read_notification(notification_id: int, user_id: int, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(user_id, current_user)
     notification = mark_notification_read(notification_id, user_id)
 
     if notification is None:
@@ -623,8 +683,141 @@ def read_notification(notification_id: int, user_id: int):
     return {"message": "Notification marked as read!"}
 
 
+@app.put("/notifications/{user_id}/read-all")
+def read_all_notifications(user_id: int, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(user_id, current_user)
+    mark_all_notifications_read(user_id)
+
+    return {"message": "All notifications marked as read!"}
+
+
+@app.delete("/notifications/{notification_id}")
+def remove_notification(notification_id: int, user_id: int, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(user_id, current_user)
+    deleted = delete_notification(notification_id, user_id)
+
+    if deleted is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Notification not found",
+        )
+
+    return {"message": "Notification deleted!"}
+
+
+@app.post("/community/{post_id}/rating")
+def add_rating(post_id: int, rating: RatingRequest, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(rating.user_id, current_user)
+    if not 1 <= rating.rating <= 5:
+        raise HTTPException(
+            status_code=400,
+            detail="Rating must be between 1 and 5",
+        )
+
+    try:
+        result = rate_post(post_id, rating.user_id, rating.rating)
+    except RatingTableMissingError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except PostNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except UserNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Post not found",
+        )
+
+    try:
+        average, count = get_post_rating(post_id)
+    except RatingTableMissingError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return {
+        "message": "Rating submitted successfully!",
+        "average_rating": average,
+        "rating_count": count,
+        "your_rating": rating.rating,
+    }
+
+
+@app.get("/community/{post_id}/rating")
+def fetch_post_rating(post_id: int):
+    try:
+        average, count = get_post_rating(post_id)
+    except RatingTableMissingError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return {
+        "post_id": post_id,
+        "average_rating": average,
+        "rating_count": count,
+    }
+
+
+@app.get("/community/{post_id}/rating/{user_id}")
+def fetch_user_rating(post_id: int, user_id: int):
+    try:
+        your_rating = get_user_rating(post_id, user_id)
+    except RatingTableMissingError as exc:
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    return {
+        "post_id": post_id,
+        "user_id": user_id,
+        "your_rating": your_rating,
+    }
+
+
+@app.get("/users/{user_id}")
+def fetch_user_profile(user_id: int, current_user: dict = Depends(get_current_user)):
+    try:
+        return get_user_profile(user_id)
+    except ProfileUserNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.put("/users/{user_id}")
+def edit_user_profile(user_id: int, profile: ProfileUpdateRequest, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(user_id, current_user)
+    try:
+        user = update_user_profile(
+            user_id,
+            profile.name,
+            profile.username,
+            profile.email,
+        )
+    except ProfileUserNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except (UsernameTakenError, EmailTakenError) as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+    return {"message": "Profile updated successfully!", "user": user}
+
+
+@app.put("/users/{user_id}/password")
+def edit_user_password(user_id: int, payload: PasswordChangeRequest, current_user: dict = Depends(get_current_user)):
+    require_self_or_admin(user_id, current_user)
+    if len(payload.new_password) < 6:
+        raise HTTPException(
+            status_code=400,
+            detail="New password must be at least 6 characters long.",
+        )
+
+    try:
+        change_password(user_id, payload.current_password, payload.new_password)
+    except ProfileUserNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except IncorrectPasswordError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+
+    return {"message": "Password updated successfully!"}
+
+
 @app.get("/admin/users")
-def fetch_all_users():
+def fetch_all_users(current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     users = get_all_users()
 
     return {
@@ -642,7 +835,8 @@ def fetch_all_users():
 
 
 @app.delete("/admin/community/{post_id}")
-def admin_remove_post(post_id: int):
+def admin_remove_post(post_id: int, current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     deleted = admin_delete_post(post_id)
 
     if deleted is None:
@@ -655,7 +849,8 @@ def admin_remove_post(post_id: int):
 
 
 @app.get("/admin/dashboard")
-def admin_dashboard():
+def admin_dashboard(current_user: dict = Depends(get_current_user)):
+    require_admin(current_user)
     return {
         "dashboard": get_dashboard_stats()
     }

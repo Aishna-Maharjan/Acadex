@@ -12,8 +12,11 @@ import link from "../assets/link.png";
 import empty from "../assets/empty.png";
 import cmt from "../assets/cmt.png";
 import search from "../assets/search.png";
+import StarRating from "../components/StarRating";
+import { getAvatarColor } from "../utils/notifications";
+import { getTypeColor } from "../utils/resourceType";
+import { apiFetch, API_URL } from "../utils/api";
 
-const API_URL = "http://127.0.0.1:8000";
 
 export default function Community() {
   const navigate = useNavigate();
@@ -24,6 +27,8 @@ export default function Community() {
   const [likedPosts, setLikedPosts] = useState([]);
   const [likeCounts, setLikeCounts] = useState({});
   const [commentCounts, setCommentCounts] = useState({});
+  const [ratings, setRatings] = useState({});
+  const [myRatings, setMyRatings] = useState({});
   const [searchQuery, setSearchQuery] = useState("");
   const [showMoreRecommended, setShowMoreRecommended] = useState(false);
 
@@ -36,11 +41,13 @@ export default function Community() {
   async function loadPostCounts(fetchedPosts) {
     const likeResults = {};
     const commentResults = {};
+    const ratingResults = {};
+    const myRatingResults = {};
 
     await Promise.all(
       fetchedPosts.map(async (post) => {
         try {
-          const likeResponse = await fetch(
+          const likeResponse = await apiFetch(
             `${API_URL}/community/${post.id}/likes`,
           );
 
@@ -53,7 +60,7 @@ export default function Community() {
         }
 
         try {
-          const commentResponse = await fetch(
+          const commentResponse = await apiFetch(
             `${API_URL}/community/${post.id}/comments`,
           );
 
@@ -64,11 +71,44 @@ export default function Community() {
         } catch (error) {
           console.error("Comment count error:", error);
         }
+
+        try {
+          const ratingResponse = await apiFetch(
+            `${API_URL}/community/${post.id}/rating`,
+          );
+
+          if (ratingResponse.ok) {
+            const ratingData = await ratingResponse.json();
+            ratingResults[post.id] = {
+              average: ratingData.average_rating || 0,
+              count: ratingData.rating_count || 0,
+            };
+          }
+        } catch (error) {
+          console.error("Rating fetch error:", error);
+        }
+
+        if (userId) {
+          try {
+            const myRatingResponse = await apiFetch(
+              `${API_URL}/community/${post.id}/rating/${userId}`,
+            );
+
+            if (myRatingResponse.ok) {
+              const myRatingData = await myRatingResponse.json();
+              myRatingResults[post.id] = myRatingData.your_rating || 0;
+            }
+          } catch (error) {
+            console.error("My rating fetch error:", error);
+          }
+        }
       }),
     );
 
     setLikeCounts(likeResults);
     setCommentCounts(commentResults);
+    setRatings(ratingResults);
+    setMyRatings(myRatingResults);
   }
 
   async function fetchPosts() {
@@ -77,7 +117,7 @@ export default function Community() {
     setShowMoreRecommended(false);
 
     try {
-      const response = await fetch(`${API_URL}/community`);
+      const response = await apiFetch(`${API_URL}/community`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch community posts");
@@ -106,7 +146,7 @@ export default function Community() {
     }
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_URL}/community/search?keyword=${encodeURIComponent(value)}`,
       );
 
@@ -127,7 +167,7 @@ export default function Community() {
   async function handleLike(postId) {
     try {
       if (likedPosts.includes(postId)) {
-        const response = await fetch(
+        const response = await apiFetch(
           `${API_URL}/community/${postId}/like?user_id=${userId}`,
           {
             method: "DELETE",
@@ -145,7 +185,7 @@ export default function Community() {
           [postId]: Math.max((prev[postId] || 1) - 1, 0),
         }));
       } else {
-        const response = await fetch(`${API_URL}/community/${postId}/like`, {
+        const response = await apiFetch(`${API_URL}/community/${postId}/like`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -171,13 +211,58 @@ export default function Community() {
     }
   }
 
+  async function handleRate(postId, value) {
+    if (!userId) {
+      alert("Please log in to rate resources.");
+      return;
+    }
+
+    const previousMyRating = myRatings[postId] || 0;
+    const previousSummary = ratings[postId] || { average: 0, count: 0 };
+
+    setMyRatings((prev) => ({ ...prev, [postId]: value }));
+
+    try {
+      const response = await apiFetch(`${API_URL}/community/${postId}/rating`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          rating: value,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "Failed to submit rating");
+      }
+
+      const data = await response.json();
+
+      setRatings((prev) => ({
+        ...prev,
+        [postId]: {
+          average: data.average_rating,
+          count: data.rating_count,
+        },
+      }));
+    } catch (error) {
+      console.error("Rating error:", error);
+      setMyRatings((prev) => ({ ...prev, [postId]: previousMyRating }));
+      setRatings((prev) => ({ ...prev, [postId]: previousSummary }));
+      alert(error.message);
+    }
+  }
+
   async function handleDeletePost(postId) {
     const confirmed = window.confirm("Delete this resource from Community?");
 
     if (!confirmed) return;
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_URL}/community/${postId}?user_id=${userId}`,
         {
           method: "DELETE",
@@ -197,6 +282,18 @@ export default function Community() {
       });
 
       setCommentCounts((prev) => {
+        const updated = { ...prev };
+        delete updated[postId];
+        return updated;
+      });
+
+      setRatings((prev) => {
+        const updated = { ...prev };
+        delete updated[postId];
+        return updated;
+      });
+
+      setMyRatings((prev) => {
         const updated = { ...prev };
         delete updated[postId];
         return updated;
@@ -253,6 +350,9 @@ export default function Community() {
   }, [sortedPosts]);
 
   function ResourceCard({ post }) {
+    const typeColor = getTypeColor(post.resource_type);
+    const authorInitial = (post.username || "S").charAt(0).toUpperCase();
+
     return (
       <article className="community-resource-card">
         <div className="resource-card-top">
@@ -263,7 +363,14 @@ export default function Community() {
             />
           </div>
 
-          <span className="resource-type">
+          <span
+            className="resource-type"
+            style={{
+              background: typeColor.bg,
+              color: typeColor.text,
+              borderColor: typeColor.border,
+            }}
+          >
             {post.resource_type || "RESOURCE"}
           </span>
         </div>
@@ -271,6 +378,12 @@ export default function Community() {
         <h3>{post.title}</h3>
 
         <p className="resource-shared-by">
+          <span
+            className="resource-shared-by-avatar"
+            style={{ background: getAvatarColor(post.username || post.user_id) }}
+          >
+            {authorInitial}
+          </span>
           Shared by <strong>@{post.username || "student"}</strong>
         </p>
 
@@ -278,6 +391,15 @@ export default function Community() {
           {post.description ||
             "A useful academic resource shared with the community."}
         </p>
+
+        <div className="resource-rating-row">
+          <StarRating
+            value={myRatings[post.id] || ratings[post.id]?.average || 0}
+            count={ratings[post.id]?.count || 0}
+            size={13}
+            onRate={(value) => handleRate(post.id, value)}
+          />
+        </div>
 
         <div className="resource-card-footer">
           <div className="resource-stats">

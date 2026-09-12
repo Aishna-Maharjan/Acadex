@@ -5,8 +5,8 @@ import "./Personal.css";
 
 import sub from "../assets/sub.png";
 import resources from "../assets/resources.png";
+import { apiFetch, API_URL } from "../utils/api";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
 
 export default function Personal() {
   const [showModal, setShowModal] = useState(false);
@@ -26,8 +26,8 @@ export default function Personal() {
       }
 
       try {
-        const response = await fetch(
-          `${API_BASE_URL}/subjects/${userId}`
+        const response = await apiFetch(
+          `${API_URL}/subjects/${userId}`
         );
 
         const data = await response.json();
@@ -42,8 +42,8 @@ export default function Personal() {
         const subjectsWithResources = await Promise.all(
           data.subjects.map(async (subject) => {
             try {
-              const resourceResponse = await fetch(
-                `${API_BASE_URL}/resources/${subject.id}`
+              const resourceResponse = await apiFetch(
+                `${API_URL}/resources/${subject.id}`
               );
 
               const resourceData = await resourceResponse.json();
@@ -100,7 +100,7 @@ export default function Personal() {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/subjects`, {
+      const response = await apiFetch(`${API_URL}/subjects`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -147,8 +147,8 @@ export default function Personal() {
     }
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/subjects/${id}?user_id=${userId}`,
+      const response = await apiFetch(
+        `${API_URL}/subjects/${id}?user_id=${userId}`,
         {
           method: "DELETE",
         }

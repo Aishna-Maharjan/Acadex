@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { API_URL } from "../utils/api";
 import "./Signup.css";
 
 export default function Signup() {
@@ -29,7 +30,7 @@ export default function Signup() {
     }
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/signup", {
+      const response = await fetch(`${API_URL}/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -48,10 +49,17 @@ export default function Signup() {
         setError(data.detail || "Signup failed.");
         return;
       }
-      alert("Account created successfully!");
-      window.location.href = "/login";
-      console.log(data);
-    } catch (err) {
+
+      // Signup issues a token too, so we can log the user straight in
+      // instead of making them re-enter their credentials.
+      localStorage.setItem("token", data.access_token);
+      localStorage.setItem("userId", data.user.id);
+      localStorage.setItem("userName", data.user.name);
+      localStorage.setItem("username", data.user.username);
+      localStorage.setItem("role", data.user.role || "user");
+
+      window.location.href = "/home";
+    } catch {
       setError("Could not connect to server.");
     }
   };
@@ -134,7 +142,7 @@ export default function Signup() {
 
         <p className="login-text">
           Already have an account?{" "}
-          <span onClick={() => (window.location.href = "/login")}>Login</span>
+          <span onClick={() => (window.location.href = "/")}>Login</span>
         </p>
       </div>
     </div>

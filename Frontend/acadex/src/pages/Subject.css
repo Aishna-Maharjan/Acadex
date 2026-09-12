@@ -518,6 +518,25 @@ button.dashboard-card:hover {
   color: #8a6d1d;
 }
 
+.resource-card-open-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.resource-card-open-row .resource-link {
+  margin-top: 0;
+}
+
+.resource-preview-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
 .resource-notes-preview {
   margin: 16px 0 0;
   color: #5a5a6a;

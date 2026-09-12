@@ -1,7 +1,8 @@
 import { NavLink, Link } from "react-router-dom";
 import "./Navbar.css";
 
-import notification from "../assets/notification.png";
+import logo from "../assets/logo.png"
+import NotificationBell from "./NotificationBell";
 
 export default function Navbar() {
   const userName = localStorage.getItem("userName") || "Student";
@@ -10,10 +11,9 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <div className="navbar-inner">
-        {/* Logo */}
         <div className="logo-area">
           <Link to="/home" className="logo">
-            acadex
+            <img src={logo} alt="Acadex" />
           </Link>
         </div>
 
@@ -43,9 +43,7 @@ export default function Navbar() {
 
         {/* Right side */}
         <div className="nav-actions">
-          <button className="notification-btn" aria-label="Notifications">
-            <img src={notification} alt="Notifications" />
-          </button>
+          <NotificationBell />
 
           <Link to="/profile" className="profile-avatar" aria-label="Profile">
             {initial}

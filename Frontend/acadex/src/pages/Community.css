@@ -177,6 +177,10 @@
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 1px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(232, 201, 122, 0.45);
+  background: rgba(232, 201, 122, 0.16);
 }
 
 .community-resource-card h3 {
@@ -188,9 +192,25 @@
 }
 
 .resource-shared-by {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0 0 14px;
   color: #99958D;
   font-size: 11px;
+}
+
+.resource-shared-by-avatar {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1A1A2E;
+  font-size: 10px;
+  font-weight: 700;
 }
 
 .resource-shared-by strong {
@@ -206,6 +226,10 @@
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.resource-rating-row {
+  margin: 12px 0 0;
 }
 
 .resource-card-footer {

@@ -10,8 +10,12 @@ import notes from "../assets/notes.png";
 import video from "../assets/video.png";
 import link from "../assets/link.png";
 import cmt from "../assets/cmt.png";
+import StarRating from "../components/StarRating";
+import ResourcePreview from "../components/ResourcePreview";
+import { getAvatarColor } from "../utils/notifications";
+import { getTypeColor } from "../utils/resourceType";
+import { apiFetch, API_URL } from "../utils/api";
 
-const API_URL = "http://127.0.0.1:8000";
 
 export default function ResourceDetails() {
   const { id } = useParams();
@@ -29,16 +33,16 @@ export default function ResourceDetails() {
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState("");
 
-  useEffect(() => {
-    fetchResource();
-  }, [id]);
+  const [ratingAverage, setRatingAverage] = useState(0);
+  const [ratingCount, setRatingCount] = useState(0);
+  const [myRating, setMyRating] = useState(0);
 
   async function fetchResource() {
     setLoading(true);
     setError("");
 
     try {
-      const response = await fetch(`${API_URL}/community`);
+      const response = await apiFetch(`${API_URL}/community`);
 
       if (!response.ok) {
         throw new Error("Failed to load resource");
@@ -59,6 +63,7 @@ export default function ResourceDetails() {
       await Promise.all([
         fetchLikes(foundPost.id),
         fetchComments(foundPost.id),
+        fetchRating(foundPost.id),
       ]);
     } catch (error) {
       console.error("Resource details error:", error);
@@ -70,7 +75,7 @@ export default function ResourceDetails() {
 
   async function fetchLikes(postId) {
     try {
-      const response = await fetch(`${API_URL}/community/${postId}/likes`);
+      const response = await apiFetch(`${API_URL}/community/${postId}/likes`);
 
       if (!response.ok) return;
 
@@ -83,7 +88,7 @@ export default function ResourceDetails() {
 
   async function fetchComments(postId) {
     try {
-      const response = await fetch(`${API_URL}/community/${postId}/comments`);
+      const response = await apiFetch(`${API_URL}/community/${postId}/comments`);
 
       if (!response.ok) return;
 
@@ -94,10 +99,76 @@ export default function ResourceDetails() {
     }
   }
 
+  async function fetchRating(postId) {
+    try {
+      const response = await apiFetch(`${API_URL}/community/${postId}/rating`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setRatingAverage(data.average_rating || 0);
+        setRatingCount(data.rating_count || 0);
+      }
+
+      if (userId) {
+        const myResponse = await apiFetch(
+          `${API_URL}/community/${postId}/rating/${userId}`,
+        );
+
+        if (myResponse.ok) {
+          const myData = await myResponse.json();
+          setMyRating(myData.your_rating || 0);
+        }
+      }
+    } catch (error) {
+      console.error("Rating fetch error:", error);
+    }
+  }
+
+  async function handleRate(value) {
+    if (!userId) {
+      alert("Please log in to rate resources.");
+      return;
+    }
+
+    const previousMyRating = myRating;
+    const previousAverage = ratingAverage;
+    const previousCount = ratingCount;
+
+    setMyRating(value);
+
+    try {
+      const response = await apiFetch(`${API_URL}/community/${id}/rating`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_id: userId,
+          rating: value,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.detail || "Failed to submit rating");
+      }
+
+      const data = await response.json();
+      setRatingAverage(data.average_rating || 0);
+      setRatingCount(data.rating_count || 0);
+    } catch (error) {
+      console.error("Rating error:", error);
+      setMyRating(previousMyRating);
+      setRatingAverage(previousAverage);
+      setRatingCount(previousCount);
+      alert(error.message);
+    }
+  }
+
   async function handleLike() {
     try {
       if (liked) {
-        const response = await fetch(
+        const response = await apiFetch(
           `${API_URL}/community/${id}/like?user_id=${userId}`,
           {
             method: "DELETE",
@@ -111,7 +182,7 @@ export default function ResourceDetails() {
         setLiked(false);
         setLikeCount((prev) => Math.max(prev - 1, 0));
       } else {
-        const response = await fetch(`${API_URL}/community/${id}/like`, {
+        const response = await apiFetch(`${API_URL}/community/${id}/like`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -139,7 +210,7 @@ export default function ResourceDetails() {
     if (!text) return;
 
     try {
-      const response = await fetch(`${API_URL}/community/${id}/comments`, {
+      const response = await apiFetch(`${API_URL}/community/${id}/comments`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -166,7 +237,7 @@ export default function ResourceDetails() {
 
   async function handleDeleteComment(commentId) {
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_URL}/community/comments/${commentId}?user_id=${userId}`,
         {
           method: "DELETE",
@@ -199,6 +270,11 @@ export default function ResourceDetails() {
         return notes;
     }
   }
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data load on mount/param change, same pattern used across the app's other pages (Home, Personal, Subject, Community)
+    fetchResource();
+  }, [id]);
 
   if (loading) {
     return (
@@ -251,13 +327,28 @@ export default function ResourceDetails() {
             </div>
 
             <div>
-              <span className="details-resource-type">
+              <span
+                className="details-resource-type"
+                style={{
+                  background: getTypeColor(post.resource_type).bg,
+                  color: getTypeColor(post.resource_type).text,
+                  borderColor: getTypeColor(post.resource_type).border,
+                }}
+              >
                 {post.resource_type || "RESOURCE"}
               </span>
 
               <h1>{post.title}</h1>
 
               <p className="details-shared-by">
+                <span
+                  className="details-shared-by-avatar"
+                  style={{
+                    background: getAvatarColor(post.username || post.user_id),
+                  }}
+                >
+                  {(post.username || "S").charAt(0).toUpperCase()}
+                </span>
                 Shared by <strong>@{post.username || "student"}</strong>
               </p>
             </div>
@@ -273,18 +364,13 @@ export default function ResourceDetails() {
           </div>
 
           {post.resource_url && (
-            <div className="details-resource-box">
-              <div>
-                <span>RESOURCE LINK</span>
+            <div className="details-resource-preview-section">
+              <span className="details-resource-preview-label">PREVIEW</span>
 
-                <p>
-                  Open the shared resource to study or explore its contents.
-                </p>
-              </div>
-
-              <a href={post.resource_url} target="_blank" rel="noreferrer">
-                Open Resource →
-              </a>
+              <ResourcePreview
+                resourceType={post.resource_type}
+                resourceUrl={post.resource_url}
+              />
             </div>
           )}
 
@@ -307,6 +393,23 @@ export default function ResourceDetails() {
               {comments.length !== 1 ? "s" : ""}
             </span>
           </div>
+
+          <section className="details-rating">
+            <h2>Rate this resource</h2>
+
+            <div className="details-rating-row">
+              <StarRating value={myRating} onRate={handleRate} size={22} />
+
+              <span className="details-rating-summary">
+                {ratingCount > 0
+                  ? `${ratingAverage.toFixed(1)} average · ${ratingCount} rating${
+                      ratingCount !== 1 ? "s" : ""
+                    }`
+                  : "No ratings yet — be the first to rate."}
+              </span>
+            </div>
+          </section>
+
           <section className="details-comments">
             <h2>Comments</h2>
 
@@ -336,7 +439,14 @@ export default function ResourceDetails() {
               ) : (
                 comments.map((comment) => (
                   <div className="detail-comment" key={comment.id}>
-                    <div className="detail-comment-avatar">
+                    <div
+                      className="detail-comment-avatar"
+                      style={{
+                        background: getAvatarColor(
+                          comment.username || comment.user_id,
+                        ),
+                      }}
+                    >
                       {comment.username?.charAt(0).toUpperCase() || "U"}
                     </div>
 

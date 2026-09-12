@@ -24,6 +24,12 @@
     align-items: center;
 }
 
+.logo img {
+  width: 120px;
+  height: auto;
+  display: block;
+}
+
 .logo {
     text-decoration: none;
     color: #F5F2EC;

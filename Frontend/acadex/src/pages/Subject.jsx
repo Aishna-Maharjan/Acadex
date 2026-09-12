@@ -8,8 +8,9 @@ import "./Subject.css";
 import fav from "../assets/fav.png"
 import empty from "../assets/empty.png";
 import device from "../assets/device.png";
+import link from "../assets/link.png";
+import { apiFetch, API_URL } from "../utils/api";
 
-const API_URL = "http://127.0.0.1:8000";
 
 function Subject() {
   const { id } = useParams();
@@ -51,7 +52,7 @@ function Subject() {
 
   async function fetchSubject() {
     try {
-      const response = await fetch(`${API_URL}/subjects/${userId}`);
+      const response = await apiFetch(`${API_URL}/subjects/${userId}`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch subjects");
@@ -75,7 +76,7 @@ function Subject() {
 
   async function fetchResources() {
     try {
-      const response = await fetch(`${API_URL}/resources/${id}`);
+      const response = await apiFetch(`${API_URL}/resources/${id}`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch resources");
@@ -101,7 +102,7 @@ function Subject() {
     }
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_URL}/resources/${id}/search?keyword=${encodeURIComponent(value)}`,
       );
 
@@ -121,7 +122,7 @@ function Subject() {
     e.preventDefault();
 
     try {
-      const response = await fetch(`${API_URL}/subjects/${id}`, {
+      const response = await apiFetch(`${API_URL}/subjects/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -157,7 +158,7 @@ function Subject() {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_URL}/subjects/${id}?user_id=${userId}`,
         {
           method: "DELETE",
@@ -180,7 +181,7 @@ function Subject() {
     if (!confirmed) return;
 
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_URL}/resources/${resourceId}?subject_id=${id}`,
         {
           method: "DELETE",
@@ -201,7 +202,7 @@ function Subject() {
 
   async function handleToggleFavorite(resourceId) {
     try {
-      const response = await fetch(
+      const response = await apiFetch(
         `${API_URL}/resources/${resourceId}/favorite?subject_id=${id}`,
         {
           method: "PUT",
@@ -229,7 +230,7 @@ function Subject() {
 
   async function handleUpdateResource(resourceId, updatedData) {
     try {
-      const response = await fetch(`${API_URL}/resources/${resourceId}`, {
+      const response = await apiFetch(`${API_URL}/resources/${resourceId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -262,7 +263,7 @@ function Subject() {
     setAddingResource(true);
 
     try {
-      const response = await fetch(`${API_URL}/resources`, {
+      const response = await apiFetch(`${API_URL}/resources`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -303,7 +304,7 @@ function Subject() {
     setSharingResource(true);
 
     try {
-      const response = await fetch(`${API_URL}/community`, {
+      const response = await apiFetch(`${API_URL}/community`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -340,7 +341,7 @@ function Subject() {
 
   async function fetchCommunityPosts() {
     try {
-      const response = await fetch(`${API_URL}/community`);
+      const response = await apiFetch(`${API_URL}/community`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch community posts");

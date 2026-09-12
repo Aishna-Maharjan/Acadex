@@ -10,11 +10,18 @@ from pydantic import BaseModel
 
 from admin import admin_delete_post, get_all_users, get_dashboard_stats
 from auth import (
+    CaptchaError,
+    GoogleAuthError,
+    PASSWORD_REQUIREMENTS,
+    WeakPasswordError,
     create_access_token,
     get_current_user,
     login_user,
     require_admin,
     require_self_or_admin,
+    validate_password_strength,
+    verify_google_token,
+    verify_recaptcha,
 )
 from comments import create_comment, delete_comment, get_comments
 from community import create_post, delete_post, get_posts, search_posts, update_post
@@ -49,6 +56,8 @@ from users import (
     UserNotFoundError as ProfileUserNotFoundError,
     UsernameTakenError,
     change_password,
+    create_user,
+    get_or_create_google_user,
     get_user_profile,
     update_user_profile,
 )
@@ -73,11 +82,17 @@ class SignupRequest(BaseModel):
     username: str
     email: str
     password: str
+    captcha_token: Optional[str] = None
 
 
 class LoginRequest(BaseModel):
     username: str
     password: str
+    recaptcha_token: str | None = None
+
+
+class GoogleAuthRequest(BaseModel):
+    credential: str
 
 
 class SubjectRequest(BaseModel):
@@ -135,64 +150,75 @@ class PasswordChangeRequest(BaseModel):
     new_password: str
 
 
+@app.get("/auth/password-requirements")
+def password_requirements():
+    return {"requirements": PASSWORD_REQUIREMENTS}
+
+
 @app.post("/signup")
 def signup(user: SignupRequest):
+    try:
+        verify_recaptcha(user.captcha_token)
+    except CaptchaError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    try:
+        validate_password_strength(user.password)
+    except WeakPasswordError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
     hashed_password = password_hasher.hash(user.password)
 
     try:
-        conn = psycopg2.connect(
-            host=os.getenv("DB_HOST"),
-            port=os.getenv("DB_PORT"),
-            dbname=os.getenv("DB_NAME"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-        )
+        user_payload = create_user(user.name, user.username, user.email, hashed_password)
+    except (UsernameTakenError, EmailTakenError) as exc:
+        # Deliberately generic 409 message: confirming *which* field collided
+        # is still some account-enumeration signal, so we don't parrot the
+        # user's email/username back in the error.
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                INSERT INTO users (name, username, email, password_hash)
-                VALUES (%s, %s, %s, %s)
-                RETURNING id, name, username, email, role;
-                """,
-                (
-                    user.name,
-                    user.username,
-                    user.email,
-                    hashed_password,
-                ),
-            )
+    access_token = create_access_token(user_payload)
 
-            new_user = cur.fetchone()
-            conn.commit()
+    return {
+        "message": "Account created successfully!",
+        "user": user_payload,
+        "access_token": access_token,
+        "token_type": "bearer",
+    }
 
-        conn.close()
 
-        user_payload = {
-            "id": new_user[0],
-            "name": new_user[1],
-            "username": new_user[2],
-            "email": new_user[3],
-            "role": new_user[4],
-        }
+@app.post("/auth/google")
+def google_auth(payload: GoogleAuthRequest):
+    """Sign in (or silently register) via a Google Identity Services ID token."""
+    try:
+        google_payload = verify_google_token(payload.credential)
+    except GoogleAuthError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
 
-        access_token = create_access_token(user_payload)
+    name = google_payload.get("name") or google_payload["email"].split("@")[0]
+    email = google_payload["email"]
 
-        return {
-            "message": "Account created successfully!",
-            "user": user_payload,
-            "access_token": access_token,
-            "token_type": "bearer",
-        }
+    user_payload = get_or_create_google_user(name, email)
+    access_token = create_access_token(user_payload)
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return {
+        "message": "Login successful!",
+        "user": user_payload,
+        "access_token": access_token,
+        "token_type": "bearer",
+    }
 
 
 @app.post("/login")
 def login(user: LoginRequest):
+    try:
+        verify_recaptcha(user.recaptcha_token)
+    except CaptchaError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail=str(exc),
+        ) from exc
+
     logged_user = login_user(user.username, user.password)
 
     if logged_user is None:
@@ -209,7 +235,6 @@ def login(user: LoginRequest):
         "access_token": access_token,
         "token_type": "bearer",
     }
-
 
 @app.get("/me")
 def read_current_user(current_user: dict = Depends(get_current_user)):
@@ -799,11 +824,10 @@ def edit_user_profile(user_id: int, profile: ProfileUpdateRequest, current_user:
 @app.put("/users/{user_id}/password")
 def edit_user_password(user_id: int, payload: PasswordChangeRequest, current_user: dict = Depends(get_current_user)):
     require_self_or_admin(user_id, current_user)
-    if len(payload.new_password) < 6:
-        raise HTTPException(
-            status_code=400,
-            detail="New password must be at least 6 characters long.",
-        )
+    try:
+        validate_password_strength(payload.new_password)
+    except WeakPasswordError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     try:
         change_password(user_id, payload.current_password, payload.new_password)

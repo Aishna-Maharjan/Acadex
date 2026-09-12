@@ -1,8 +1,8 @@
 import { NavLink, Link } from "react-router-dom";
 import "./Navbar.css";
 
-import logo from "../assets/logo.png"
 import NotificationBell from "./NotificationBell";
+import logo from "../assets/logo.png";
 
 export default function Navbar() {
   const userName = localStorage.getItem("userName") || "Student";
@@ -11,9 +11,11 @@ export default function Navbar() {
   return (
     <nav className="navbar">
       <div className="navbar-inner">
+        {/* Logo */}
         <div className="logo-area">
           <Link to="/home" className="logo">
-            <img src={logo} alt="Acadex" />
+            <img src={logo} alt="" className="logo-mark" />
+            <span>acadex</span>
           </Link>
         </div>
 

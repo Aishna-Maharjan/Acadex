@@ -5,3 +5,5 @@ python-dotenv
 pwdlib[argon2]
 pyjwt
 pydantic
+requests
+google-auth

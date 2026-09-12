@@ -75,6 +75,12 @@
   color: #AAA69E;
 }
 
+.google-signin-button {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
 .login-error {
   color: #A33A3A;
   background: #FCE8E8;

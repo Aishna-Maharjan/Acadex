@@ -24,13 +24,10 @@
     align-items: center;
 }
 
-.logo img {
-  width: 120px;
-  height: auto;
-  display: block;
-}
-
 .logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
     text-decoration: none;
     color: #F5F2EC;
     font-family: "DM Serif Display", Georgia, serif;
@@ -38,6 +35,12 @@
     font-weight: 400;
     letter-spacing: 0;
     transition: color 0.2s ease;
+}
+
+.logo-mark {
+    height: 34px;
+    width: auto;
+    display: block;
 }
 
 .logo:hover {
@@ -178,6 +181,10 @@
 
     .logo {
         font-size: 22px;
+    }
+
+    .logo-mark {
+        height: 28px;
     }
 
     .notification-btn,

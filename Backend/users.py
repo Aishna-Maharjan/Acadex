@@ -1,4 +1,5 @@
 import os
+import secrets
 
 import psycopg2
 from dotenv import load_dotenv
@@ -33,6 +34,136 @@ def get_connection():
         user=os.getenv("DB_USER"),
         password=os.getenv("DB_PASSWORD")
     )
+
+
+def create_user(name, username, email, password_hash):
+    """Insert a new user, translating unique-constraint violations into clean,
+    non-leaky errors instead of a raw Postgres exception bubbling up.
+    """
+    conn = get_connection()
+    cur = conn.cursor()
+
+    try:
+        cur.execute(
+            """
+            INSERT INTO users (name, username, email, password_hash)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id, name, username, email, role;
+            """,
+            (name, username, email, password_hash),
+        )
+    except psycopg2.errors.UniqueViolation as exc:
+        conn.rollback()
+        cur.close()
+        conn.close()
+
+        constraint = getattr(exc.diag, "constraint_name", "") or ""
+        if "username" in constraint:
+            raise UsernameTakenError("That username is already taken.") from exc
+        if "email" in constraint:
+            raise EmailTakenError("That email is already registered.") from exc
+        raise UsernameTakenError("That username or email is already taken.") from exc
+
+    new_user = cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {
+        "id": new_user[0],
+        "name": new_user[1],
+        "username": new_user[2],
+        "email": new_user[3],
+        "role": new_user[4],
+    }
+
+
+def get_user_by_email(email):
+    conn = get_connection()
+    cur = conn.cursor()
+
+    cur.execute(
+        "SELECT id, name, username, email, role FROM users WHERE email = %s;",
+        (email,),
+    )
+    user = cur.fetchone()
+
+    cur.close()
+    conn.close()
+
+    if user is None:
+        return None
+
+    return {
+        "id": user[0],
+        "name": user[1],
+        "username": user[2],
+        "email": user[3],
+        "role": user[4],
+    }
+
+
+def get_or_create_google_user(name, email):
+    """Find the account for a Google-verified email, or create one.
+
+    New accounts get a random, unusable local password (the user can only
+    ever get in via Google, or by using "forgot password" later) and a
+    username derived from their email, de-duplicated if needed.
+    """
+    existing = get_user_by_email(email)
+    if existing is not None:
+        return existing
+
+    base_username = email.split("@")[0].lower()
+    base_username = "".join(ch for ch in base_username if ch.isalnum()) or "user"
+
+    conn = get_connection()
+    cur = conn.cursor()
+
+    unusable_password_hash = password_hasher.hash(secrets.token_urlsafe(32))
+    username = base_username
+    suffix = 0
+
+    while True:
+        try:
+            cur.execute(
+                """
+                INSERT INTO users (name, username, email, password_hash)
+                VALUES (%s, %s, %s, %s)
+                RETURNING id, name, username, email, role;
+                """,
+                (name, username, email, unusable_password_hash),
+            )
+            break
+        except psycopg2.errors.UniqueViolation as exc:
+            conn.rollback()
+            constraint = getattr(exc.diag, "constraint_name", "") or ""
+            if "email" in constraint:
+                # Another request created this account concurrently.
+                cur.close()
+                conn.close()
+                return get_user_by_email(email)
+            suffix += 1
+            username = f"{base_username}{suffix}"
+            if suffix > 50:
+                cur.close()
+                conn.close()
+                raise UsernameTakenError(
+                    "Could not generate a unique username for this account."
+                ) from exc
+
+    new_user = cur.fetchone()
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {
+        "id": new_user[0],
+        "name": new_user[1],
+        "username": new_user[2],
+        "email": new_user[3],
+        "role": new_user[4],
+    }
 
 
 def get_user_profile(user_id):

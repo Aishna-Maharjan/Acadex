@@ -1,11 +1,15 @@
 import os
+import re
 from datetime import datetime, timedelta, timezone
 
 import jwt
 import psycopg2
+import requests
 from dotenv import load_dotenv
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
 from pwdlib import PasswordHash
 
 load_dotenv()
@@ -21,6 +25,94 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "1440"))  # 24h
 
 security_scheme = HTTPBearer(auto_error=False)
+
+# --- Password policy -----------------------------------------------------
+PASSWORD_REQUIREMENTS = (
+    "Password must be at least 8 characters and include an uppercase letter, "
+    "a lowercase letter, a number, and a special character."
+)
+
+
+class WeakPasswordError(Exception):
+    """Raised when a password doesn't meet the minimum complexity policy."""
+
+
+def validate_password_strength(password: str) -> None:
+    """Raise WeakPasswordError with a specific reason if the password is too weak."""
+    if len(password) < 8:
+        raise WeakPasswordError("Password must be at least 8 characters long.")
+    if not re.search(r"[A-Z]", password):
+        raise WeakPasswordError("Password must include at least one uppercase letter.")
+    if not re.search(r"[a-z]", password):
+        raise WeakPasswordError("Password must include at least one lowercase letter.")
+    if not re.search(r"[0-9]", password):
+        raise WeakPasswordError("Password must include at least one number.")
+    if not re.search(r"[^A-Za-z0-9]", password):
+        raise WeakPasswordError("Password must include at least one special character.")
+
+
+# --- reCAPTCHA -------------------------------------------------------------
+RECAPTCHA_SECRET_KEY = os.getenv("RECAPTCHA_SECRET_KEY", "")
+
+
+class CaptchaError(Exception):
+    """Raised when reCAPTCHA verification fails or is missing."""
+
+
+def verify_recaptcha(token: str | None) -> None:
+    """Verify a reCAPTCHA v2 response token with Google.
+
+    No-ops (does nothing) if RECAPTCHA_SECRET_KEY isn't configured, so local
+    dev / sandboxes without a real site key don't get blocked.
+    """
+    if not RECAPTCHA_SECRET_KEY:
+        return
+
+    if not token:
+        raise CaptchaError("Please complete the CAPTCHA.")
+
+    try:
+        response = requests.post(
+            "https://www.google.com/recaptcha/api/siteverify",
+            data={"secret": RECAPTCHA_SECRET_KEY, "response": token},
+            timeout=5,
+        )
+        result = response.json()
+    except requests.RequestException as exc:
+        raise CaptchaError("Could not verify CAPTCHA. Please try again.") from exc
+
+    if not result.get("success"):
+        raise CaptchaError("CAPTCHA verification failed. Please try again.")
+
+
+# --- Google Sign-In --------------------------------------------------------
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+
+
+class GoogleAuthError(Exception):
+    """Raised when a Google ID token fails verification."""
+
+
+def verify_google_token(credential: str) -> dict:
+    """Verify a Google Identity Services ID token and return the payload.
+
+    Raises GoogleAuthError if the token is invalid, expired, or Google
+    Sign-In isn't configured on this server.
+    """
+    if not GOOGLE_CLIENT_ID:
+        raise GoogleAuthError("Google Sign-In is not configured on this server.")
+
+    try:
+        payload = google_id_token.verify_oauth2_token(
+            credential, google_requests.Request(), GOOGLE_CLIENT_ID
+        )
+    except ValueError as exc:
+        raise GoogleAuthError("Invalid Google credential.") from exc
+
+    if not payload.get("email"):
+        raise GoogleAuthError("Google account has no verified email.")
+
+    return payload
 
 
 def _get_connection():
